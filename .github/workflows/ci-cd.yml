@@ -1,0 +1,33 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore StockMesh.slnx
+
+      - name: Build
+        run: dotnet build StockMesh.slnx --configuration Release --no-restore
+
+      - name: Format check
+        run: dotnet format StockMesh.slnx --verify-no-changes --no-restore
+
+      - name: Test
+        run: dotnet test StockMesh.slnx --configuration Release --no-build
