@@ -1,3 +1,5 @@
+using Application;
+using Infrastructure;
 using Serilog;
 
 namespace Api;
@@ -21,6 +23,9 @@ public class Program
 
             builder.Services.AddControllers();
             builder.Services.AddHealthChecks();
+
+            builder.Services.AddApplication();
+            builder.Services.AddInfrastructure(builder.Configuration);
 
             var app = builder.Build();
 

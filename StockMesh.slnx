@@ -2,6 +2,7 @@
   <Folder Name="/Tests/">
     <Project Path="Tests/StockMesh.Api.IntegrationTests/StockMesh.Api.IntegrationTests.csproj" />
     <Project Path="Tests/StockMesh.Domain.UnitTests/StockMesh.Domain.UnitTests.csproj" />
+    <Project Path="Tests/StockMesh.Infrastructure.IntegrationTests/StockMesh.Infrastructure.IntegrationTests.csproj" />
   </Folder>
   <Project Path="Api/Api.csproj" />
   <Project Path="Application/Application.csproj" Id="b44bab34-e063-4f4d-8021-a12180add702" />
