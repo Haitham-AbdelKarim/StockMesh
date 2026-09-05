@@ -26,7 +26,7 @@ public class StoreUserConfiguration : IEntityTypeConfiguration<StoreUser>
         builder.HasIndex(u => u.StoreId)
             .HasDatabaseName("IX_StoreUsers_StoreId");
 
-        builder.HasOne<Store>()
+        builder.HasOne(u => u.Store)
             .WithMany()
             .HasForeignKey(u => u.StoreId)
             .OnDelete(DeleteBehavior.Restrict);

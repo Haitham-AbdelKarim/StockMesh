@@ -8,14 +8,10 @@ namespace Api.Diagnostics;
 public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
-    private readonly IProblemDetailsService _problemDetails;
 
-    public GlobalExceptionHandler(
-        ILogger<GlobalExceptionHandler> logger,
-        IProblemDetailsService problemDetails)
+    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
     {
         _logger = logger;
-        _problemDetails = problemDetails;
     }
 
     public async ValueTask<bool> TryHandleAsync(
@@ -23,29 +19,39 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        var (statusCode, title, detail) = exception switch
+        var problemDetails = exception switch
         {
-            ValidationException => (
-                StatusCodes.Status400BadRequest,
-                "Validation failed",
-                exception.Message),
-            BadRequestException => (
-                StatusCodes.Status400BadRequest,
-                "Bad request",
-                exception.Message),
-            UnauthorizedException => (
-                StatusCodes.Status401Unauthorized,
-                "Unauthorized",
-                exception.Message),
-            ConflictException => (
-                StatusCodes.Status409Conflict,
-                "Conflict",
-                exception.Message),
-            _ => (
-                StatusCodes.Status500InternalServerError,
-                "An error occurred while processing your request.",
-                "Please try again later.")
+            ValidationException => CreateValidationProblemDetails(
+                (ValidationException)exception),
+            BadRequestException => new ProblemDetails
+            {
+                Title = "Bad request",
+                Status = StatusCodes.Status400BadRequest,
+                Detail = exception.Message
+            },
+            UnauthorizedException => new ProblemDetails
+            {
+                Title = "Unauthorized",
+                Status = StatusCodes.Status401Unauthorized,
+                Detail = exception.Message
+            },
+            ConflictException => new ProblemDetails
+            {
+                Title = "Conflict",
+                Status = StatusCodes.Status409Conflict,
+                Detail = exception.Message
+            },
+            _ => new ProblemDetails
+            {
+                Title = "An error occurred while processing your request.",
+                Status = StatusCodes.Status500InternalServerError,
+                Detail = "Please try again later."
+            }
         };
+
+        var statusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
+
+        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
 
         _logger.Log(
             statusCode >= StatusCodes.Status500InternalServerError
@@ -53,21 +59,35 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                 : LogLevel.Warning,
             exception,
             "{Title}: {Message}",
-            title,
+            problemDetails.Title,
             exception.Message);
 
         httpContext.Response.StatusCode = statusCode;
 
-        return await _problemDetails.TryWriteAsync(new ProblemDetailsContext
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: cancellationToken);
+
+        return true;
+    }
+
+    private static ProblemDetails CreateValidationProblemDetails(
+        ValidationException exception)
+    {
+        var details = new ProblemDetails
         {
-            HttpContext = httpContext,
-            Exception = exception,
-            ProblemDetails = new ProblemDetails
-            {
-                Title = title,
-                Status = statusCode,
-                Detail = detail
-            }
-        });
+            Title = "Validation failed",
+            Status = StatusCodes.Status422UnprocessableEntity
+        };
+
+        details.Extensions["errors"] = exception.Errors
+            .GroupBy(f => f.PropertyName ?? string.Empty)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(f => f.ErrorMessage).ToArray());
+
+        return details;
     }
 }
