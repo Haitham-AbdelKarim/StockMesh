@@ -62,4 +62,36 @@ public class Store : BaseEntity
     {
         IsVerified = true;
     }
+
+    public void UpdateProfile(
+        string name,
+        double latitude,
+        double longitude,
+        double maxSearchRadiusKm)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Store name is required.", nameof(name));
+        }
+
+        if (latitude is < -90 or > 90)
+        {
+            throw new ArgumentOutOfRangeException(nameof(latitude), "Latitude must be between -90 and 90.");
+        }
+
+        if (longitude is < -180 or > 180)
+        {
+            throw new ArgumentOutOfRangeException(nameof(longitude), "Longitude must be between -180 and 180.");
+        }
+
+        if (maxSearchRadiusKm <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxSearchRadiusKm), "Search radius must be positive.");
+        }
+
+        Name = name;
+        Latitude = latitude;
+        Longitude = longitude;
+        MaxSearchRadiusKm = maxSearchRadiusKm;
+    }
 }
