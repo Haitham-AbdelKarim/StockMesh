@@ -484,3 +484,4 @@ $RECYCLE.BIN/
 Api/appsettings.json
 Api/appsettings.Development.json
 
+Infrastructure/Persistence/Migrations/*

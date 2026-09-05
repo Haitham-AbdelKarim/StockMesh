@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 
 namespace StockMesh.Api.IntegrationTests;
 
@@ -28,7 +29,7 @@ public class AuthControllerSmokeTests : IClassFixture<TestApiFactory>
     }
 
     [Fact]
-    public async Task RegisterStore_WithInvalidPayload_ReturnsBadRequest()
+    public async Task RegisterStore_WithInvalidPayload_ReturnsUnprocessableEntity()
     {
         var client = _factory.CreateClient();
 
@@ -39,11 +40,28 @@ public class AuthControllerSmokeTests : IClassFixture<TestApiFactory>
                 Encoding.UTF8,
                 "application/json"));
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 
     [Fact]
-    public async Task Refresh_WithMissingToken_ReturnsBadRequest()
+    public async Task RegisterStore_WithInvalidPayload_ReturnsValidationErrors()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/v1/auth/register-store",
+            new { storeName = "XYZ", email = "not-an-email", password = "12345" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+
+        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>();
+        problem.Should().NotBeNull();
+        problem!.Errors.Should().ContainKey("Email");
+        problem.Errors.Should().ContainKey("Password");
+    }
+
+    [Fact]
+    public async Task Refresh_WithMissingToken_ReturnsUnprocessableEntity()
     {
         var client = _factory.CreateClient();
 
@@ -54,6 +72,6 @@ public class AuthControllerSmokeTests : IClassFixture<TestApiFactory>
                 Encoding.UTF8,
                 "application/json"));
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 }
