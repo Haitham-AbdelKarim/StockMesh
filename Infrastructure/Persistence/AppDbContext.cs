@@ -22,6 +22,8 @@ public class AppDbContext : IdentityDbContext<StoreUser, IdentityRole<Guid>, Gui
 
     public DbSet<Store> Stores => Set<Store>();
 
+    public DbSet<Product> Products => Set<Product>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

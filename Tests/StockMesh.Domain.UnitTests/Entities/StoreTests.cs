@@ -64,4 +64,62 @@ public class StoreTests
 
         store.IsVerified.Should().BeTrue();
     }
+
+    [Fact]
+    public void UpdateProfile_WithValidInputs_UpdatesFields()
+    {
+        var store = new Store("Downtown", VerticalCategory.Grocery, 30.05, 31.25);
+
+        store.UpdateProfile("Renamed Store", 30.1, 31.3, 50);
+
+        store.Name.Should().Be("Renamed Store");
+        store.Latitude.Should().Be(30.1);
+        store.Longitude.Should().Be(31.3);
+        store.MaxSearchRadiusKm.Should().Be(50);
+        store.VerticalCategory.Should().Be(VerticalCategory.Grocery);
+        store.IsVerified.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void UpdateProfile_WithMissingName_Throws(string? name)
+    {
+        var store = new Store("Downtown", VerticalCategory.Grocery, 30.05, 31.25);
+
+        var act = () => store.UpdateProfile(name!, 30.1, 31.3, 50);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void UpdateProfile_WithLatitudeOutOfRange_Throws()
+    {
+        var store = new Store("Downtown", VerticalCategory.Grocery, 30.05, 31.25);
+
+        var act = () => store.UpdateProfile("Renamed Store", 95, 31.3, 50);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void UpdateProfile_WithLongitudeOutOfRange_Throws()
+    {
+        var store = new Store("Downtown", VerticalCategory.Grocery, 30.05, 31.25);
+
+        var act = () => store.UpdateProfile("Renamed Store", 30.1, -181, 50);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void UpdateProfile_WithNonPositiveSearchRadius_Throws()
+    {
+        var store = new Store("Downtown", VerticalCategory.Grocery, 30.05, 31.25);
+
+        var act = () => store.UpdateProfile("Renamed Store", 30.1, 31.3, 0);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
 }

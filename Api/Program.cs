@@ -9,6 +9,7 @@ using Asp.Versioning;
 using Domain.Enums;
 using Infrastructure;
 using Infrastructure.Identity;
+using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -150,6 +151,11 @@ public class Program
 
             SeedRoles(app.Services);
 
+            if (app.Environment.IsDevelopment())
+            {
+                SeedCatalog(app.Services);
+            }
+
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
@@ -183,6 +189,18 @@ public class Program
         catch (Exception ex)
         {
             Log.Warning(ex, "Failed to seed identity roles.");
+        }
+    }
+
+    private static void SeedCatalog(IServiceProvider services)
+    {
+        try
+        {
+            CatalogSeeder.EnsureCatalogAsync(services).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to seed catalog data.");
         }
     }
 }
