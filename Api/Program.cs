@@ -98,6 +98,7 @@ public class Program
         catch (Exception ex)
         {
             Log.Fatal(ex, "StockMesh terminated unexpectedly.");
+            throw;
         }
         finally
         {

@@ -1,15 +1,13 @@
 using System.Net;
-using Api;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace StockMesh.Api.IntegrationTests;
 
-public class HealthCheckTests : IClassFixture<WebApplicationFactory<Program>>
+public class HealthCheckTests : IClassFixture<TestApiFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TestApiFactory _factory;
 
-    public HealthCheckTests(WebApplicationFactory<Program> factory)
+    public HealthCheckTests(TestApiFactory factory)
     {
         _factory = factory;
     }
