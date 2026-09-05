@@ -1,3 +1,4 @@
+using Application.Common.Models;
 using Application.DTOs.Auth;
 using Domain.Enums;
 using MediatR;
@@ -11,4 +12,4 @@ public sealed record RegisterStoreCommand(
     double Longitude,
     double MaxSearchRadiusKm,
     string Email,
-    string Password) : IRequest<RegisterStoreResponse>;
+    string Password) : IRequest<Result<RegisterStoreResponse>>;

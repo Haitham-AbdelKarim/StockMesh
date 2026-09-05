@@ -41,6 +41,12 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                 Status = StatusCodes.Status409Conflict,
                 Detail = exception.Message
             },
+            NotFoundException => new ProblemDetails
+            {
+                Title = "Not Found",
+                Status = StatusCodes.Status404NotFound,
+                Detail = exception.Message
+            },
             _ => new ProblemDetails
             {
                 Title = "An error occurred while processing your request.",

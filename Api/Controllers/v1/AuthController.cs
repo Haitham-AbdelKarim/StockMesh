@@ -28,9 +28,9 @@ public class AuthController : ControllerBase
         [FromBody] RegisterStoreCommand command,
         CancellationToken cancellationToken)
     {
-        var response = await _mediator.Send(command, cancellationToken);
+        var result = await _mediator.Send(command, cancellationToken);
 
-        return StatusCode(StatusCodes.Status201Created, response);
+        return this.FromResult(result, StatusCodes.Status201Created);
     }
 
     [HttpPost("login")]
@@ -38,7 +38,7 @@ public class AuthController : ControllerBase
         [FromBody] LoginCommand command,
         CancellationToken cancellationToken)
     {
-        return Ok(await _mediator.Send(command, cancellationToken));
+        return this.FromResult(await _mediator.Send(command, cancellationToken));
     }
 
     [HttpPost("join-store")]
@@ -47,9 +47,7 @@ public class AuthController : ControllerBase
         [FromBody] JoinStoreCommand command,
         CancellationToken cancellationToken)
     {
-        var response = await _mediator.Send(command, cancellationToken);
-
-        return StatusCode(StatusCodes.Status201Created, response);
+        return this.FromResult(await _mediator.Send(command, cancellationToken), StatusCodes.Status201Created);
     }
 
     [HttpPost("refresh")]
@@ -57,6 +55,6 @@ public class AuthController : ControllerBase
         [FromBody] RefreshCommand command,
         CancellationToken cancellationToken)
     {
-        return Ok(await _mediator.Send(command, cancellationToken));
+        return this.FromResult(await _mediator.Send(command, cancellationToken));
     }
 }

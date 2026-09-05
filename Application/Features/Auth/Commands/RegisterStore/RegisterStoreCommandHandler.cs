@@ -1,15 +1,15 @@
 using Application.Abstractions.Models;
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
+using Application.Common.Models;
 using Application.DTOs.Auth;
-using Application.Exceptions;
 using Domain.Entities;
 using Domain.Enums;
 using MediatR;
 
 namespace Application.Features.Auth.Commands.RegisterStore;
 
-public sealed class RegisterStoreCommandHandler : IRequestHandler<RegisterStoreCommand, RegisterStoreResponse>
+public sealed class RegisterStoreCommandHandler : IRequestHandler<RegisterStoreCommand, Result<RegisterStoreResponse>>
 {
     private readonly IStoreRepository _storeRepository;
     private readonly IStoreUserRepository _userRepository;
@@ -25,13 +25,13 @@ public sealed class RegisterStoreCommandHandler : IRequestHandler<RegisterStoreC
         _jwtTokens = jwtTokens;
     }
 
-    public async Task<RegisterStoreResponse> Handle(
+    public async Task<Result<RegisterStoreResponse>> Handle(
         RegisterStoreCommand command,
         CancellationToken cancellationToken)
     {
         if (await _userRepository.EmailExistsAsync(command.Email, cancellationToken))
         {
-            throw new ConflictException("A user with this email already exists.");
+            return Result<RegisterStoreResponse>.Conflict("A user with this email already exists.");
         }
 
         var store = new Store(
@@ -56,7 +56,7 @@ public sealed class RegisterStoreCommandHandler : IRequestHandler<RegisterStoreC
         }
         catch (InvalidOperationException ex)
         {
-            throw new BadRequestException(ex.Message);
+            return Result<RegisterStoreResponse>.BadRequest(ex.Message);
         }
 
         var owner = new StoreUserInfo(
@@ -68,7 +68,7 @@ public sealed class RegisterStoreCommandHandler : IRequestHandler<RegisterStoreC
 
         var tokens = await IssueTokenPairAsync(owner, cancellationToken);
 
-        return new RegisterStoreResponse(store.Id, ownerId, tokens);
+        return Result<RegisterStoreResponse>.Success(new RegisterStoreResponse(store.Id, ownerId, tokens));
     }
 
     private async Task<TokenResponse> IssueTokenPairAsync(

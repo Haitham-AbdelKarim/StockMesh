@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Tests/">
     <Project Path="Tests/StockMesh.Api.IntegrationTests/StockMesh.Api.IntegrationTests.csproj" />
+    <Project Path="Tests/StockMesh.Application.UnitTests/StockMesh.Application.UnitTests.csproj" />
     <Project Path="Tests/StockMesh.Domain.UnitTests/StockMesh.Domain.UnitTests.csproj" />
     <Project Path="Tests/StockMesh.Infrastructure.UnitTests/StockMesh.Infrastructure.UnitTests.csproj" />
   </Folder>
