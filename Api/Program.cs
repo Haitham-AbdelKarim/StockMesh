@@ -6,7 +6,6 @@ using Api.Diagnostics;
 using Api.Swagger;
 using Application;
 using Asp.Versioning;
-using Asp.Versioning.ApiExplorer;
 using Domain.Enums;
 using Infrastructure;
 using Infrastructure.Identity;
@@ -135,12 +134,12 @@ public class Program
 
             if (app.Environment.IsDevelopment())
             {
+                app.MapGet("/", () => Results.Redirect("/swagger"));
+
                 app.UseSwagger();
                 app.UseSwaggerUI(options =>
                 {
-                    var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
-
-                    foreach (var description in provider.ApiVersionDescriptions)
+                    foreach (var description in app.DescribeApiVersions())
                     {
                         options.SwaggerEndpoint(
                             $"/swagger/{description.GroupName}/swagger.json",

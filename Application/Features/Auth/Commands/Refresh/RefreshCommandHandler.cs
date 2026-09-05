@@ -1,13 +1,13 @@
 using Application.Abstractions.Models;
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
+using Application.Common.Models;
 using Application.DTOs.Auth;
-using Application.Exceptions;
 using MediatR;
 
 namespace Application.Features.Auth.Commands.Refresh;
 
-public sealed class RefreshCommandHandler : IRequestHandler<RefreshCommand, TokenResponse>
+public sealed class RefreshCommandHandler : IRequestHandler<RefreshCommand, Result<TokenResponse>>
 {
     private readonly IStoreUserRepository _userRepository;
     private readonly IJwtTokenService _jwtTokens;
@@ -20,7 +20,7 @@ public sealed class RefreshCommandHandler : IRequestHandler<RefreshCommand, Toke
         _jwtTokens = jwtTokens;
     }
 
-    public async Task<TokenResponse> Handle(
+    public async Task<Result<TokenResponse>> Handle(
         RefreshCommand command,
         CancellationToken cancellationToken)
     {
@@ -32,7 +32,7 @@ public sealed class RefreshCommandHandler : IRequestHandler<RefreshCommand, Toke
 
         if (user is null)
         {
-            throw new UnauthorizedException("The refresh token is invalid or has expired.");
+            return Result<TokenResponse>.Unauthorized("The refresh token is invalid or has expired.");
         }
 
         var (accessToken, expiresAt) = _jwtTokens.GenerateAccessToken(user);
@@ -46,6 +46,6 @@ public sealed class RefreshCommandHandler : IRequestHandler<RefreshCommand, Toke
             _jwtTokens.GetRefreshTokenExpiry(),
             cancellationToken);
 
-        return new TokenResponse(accessToken, refreshToken, expiresAt);
+        return Result<TokenResponse>.Success(new TokenResponse(accessToken, refreshToken, expiresAt));
     }
 }

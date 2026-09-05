@@ -26,7 +26,7 @@ public class StoreTests
     [InlineData("   ")]
     public void Constructor_WithMissingName_Throws(string? name)
     {
-        var act = () => new Store(name, VerticalCategory.Electronics, 30.05, 31.25);
+        var act = () => new Store(name!, VerticalCategory.Electronics, 30.05, 31.25);
 
         act.Should().Throw<ArgumentException>();
     }

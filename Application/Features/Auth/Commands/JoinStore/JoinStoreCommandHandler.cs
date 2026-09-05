@@ -1,12 +1,12 @@
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
+using Application.Common.Models;
 using Application.DTOs.Auth;
-using Application.Exceptions;
 using MediatR;
 
 namespace Application.Features.Auth.Commands.JoinStore;
 
-public sealed class JoinStoreCommandHandler : IRequestHandler<JoinStoreCommand, JoinStoreResponse>
+public sealed class JoinStoreCommandHandler : IRequestHandler<JoinStoreCommand, Result<JoinStoreResponse>>
 {
     private readonly IStoreUserRepository _userRepository;
     private readonly ICurrentUser _currentUser;
@@ -19,13 +19,13 @@ public sealed class JoinStoreCommandHandler : IRequestHandler<JoinStoreCommand, 
         _currentUser = currentUser;
     }
 
-    public async Task<JoinStoreResponse> Handle(
+    public async Task<Result<JoinStoreResponse>> Handle(
         JoinStoreCommand command,
         CancellationToken cancellationToken)
     {
         if (await _userRepository.EmailExistsAsync(command.Email, cancellationToken))
         {
-            throw new ConflictException("A user with this email already exists.");
+            return Result<JoinStoreResponse>.Conflict("A user with this email already exists.");
         }
 
         Guid staffId;
@@ -40,9 +40,9 @@ public sealed class JoinStoreCommandHandler : IRequestHandler<JoinStoreCommand, 
         }
         catch (InvalidOperationException ex)
         {
-            throw new BadRequestException(ex.Message);
+            return Result<JoinStoreResponse>.BadRequest(ex.Message);
         }
 
-        return new JoinStoreResponse(staffId, command.Email);
+        return Result<JoinStoreResponse>.Success(new JoinStoreResponse(staffId, command.Email));
     }
 }

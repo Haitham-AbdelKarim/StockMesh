@@ -1,3 +1,4 @@
+using Application.Common.Models;
 using FluentValidation;
 using MediatR;
 
@@ -32,6 +33,19 @@ public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<
 
             if (failures.Count != 0)
             {
+                var errors = failures
+                    .GroupBy(f => f.PropertyName ?? string.Empty)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.Select(f => f.ErrorMessage).ToArray());
+
+                var failure = ResultFactory.CreateValidationFailure(typeof(TResponse), errors);
+
+                if (failure is not null)
+                {
+                    return (TResponse)failure;
+                }
+
                 throw new ValidationException(failures);
             }
         }
