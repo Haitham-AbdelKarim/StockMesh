@@ -25,6 +25,11 @@ public class InventoryBatchConfiguration : IEntityTypeConfiguration<InventoryBat
         builder.HasIndex(b => new { b.StoreId, b.ProductId })
             .HasDatabaseName("IX_InventoryBatches_StoreId_ProductId");
 
+        builder.HasOne<Store>()
+            .WithMany()
+            .HasForeignKey(b => b.StoreId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Ignore(b => b.IsShared);
     }
 }

@@ -19,5 +19,29 @@ public class StockReservationConfiguration : IEntityTypeConfiguration<StockReser
         builder.Property(r => r.UnitPrice).HasColumnType("decimal(18,2)");
 
         builder.Property(r => r.DistanceKm).HasColumnType("decimal(8,2)");
+
+        builder.HasIndex(r => r.RequestingStoreId)
+            .HasDatabaseName("IX_StockReservations_RequestingStoreId");
+
+        builder.HasIndex(r => r.OwningStoreId)
+            .HasDatabaseName("IX_StockReservations_OwningStoreId");
+
+        builder.HasIndex(r => r.Status)
+            .HasDatabaseName("IX_StockReservations_Status");
+
+        builder.HasOne<InventoryBatch>()
+            .WithMany()
+            .HasForeignKey(r => r.BatchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Store>()
+            .WithMany()
+            .HasForeignKey(r => r.RequestingStoreId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Store>()
+            .WithMany()
+            .HasForeignKey(r => r.OwningStoreId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
