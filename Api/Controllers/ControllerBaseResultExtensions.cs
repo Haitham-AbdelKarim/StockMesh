@@ -29,6 +29,8 @@ public static class ControllerBaseResultExtensions
         return result.Kind switch
         {
             FailureKind.Unauthorized => (ActionResult<T>)controller.Unauthorized(problem),
+            FailureKind.Forbidden => (ActionResult<T>)controller.StatusCode(
+                StatusCodes.Status403Forbidden, problem),
             FailureKind.NotFound => (ActionResult<T>)controller.NotFound(problem),
             FailureKind.Validation => (ActionResult<T>)controller.UnprocessableEntity(problem),
             FailureKind.Conflict => (ActionResult<T>)controller.Conflict(problem),
@@ -51,6 +53,12 @@ public static class ControllerBaseResultExtensions
                 Title = "Not Found",
                 Status = StatusCodes.Status404NotFound,
                 Detail = result.Error ?? "The requested resource was not found."
+            },
+            FailureKind.Forbidden => new ProblemDetails
+            {
+                Title = "Forbidden",
+                Status = StatusCodes.Status403Forbidden,
+                Detail = result.Error ?? "You are not allowed to perform this action."
             },
             FailureKind.Conflict => new ProblemDetails
             {

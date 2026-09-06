@@ -54,6 +54,16 @@ public class ResultTests
     }
 
     [Fact]
+    public void Forbidden_SetsFailureKind()
+    {
+        var result = Result.Forbidden("denied");
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Be("denied");
+        result.Kind.Should().Be(FailureKind.Forbidden);
+    }
+
+    [Fact]
     public void Validation_SetsFailureKind_AndCarriesErrors()
     {
         var errors = new Dictionary<string, string[]> { ["Email"] = ["Email is required."] };

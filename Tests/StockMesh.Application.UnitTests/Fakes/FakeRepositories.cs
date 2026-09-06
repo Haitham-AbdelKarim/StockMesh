@@ -122,6 +122,14 @@ internal sealed class FakeInventoryBatchRepository : IInventoryBatchRepository
         return Task.FromResult(_batches.GetValueOrDefault(id));
     }
 
+    public Task<IReadOnlyList<InventoryBatch>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<InventoryBatch>>(
+            _batches.Values.Where(b => ids.Contains(b.Id)).ToList());
+    }
+
     public Task<IReadOnlyList<InventoryBatch>> GetByProductAsync(
         Guid productId,
         CancellationToken cancellationToken = default)
@@ -215,6 +223,104 @@ internal sealed class FakeInventoryBatchRepository : IInventoryBatchRepository
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(0);
+    }
+}
+
+internal sealed class FakeStockMovementRepository : IStockMovementRepository
+{
+    private readonly List<StockMovement> _movements;
+
+    public FakeStockMovementRepository(params StockMovement[] movements)
+    {
+        _movements = movements.ToList();
+    }
+
+    public Exception? SaveException { get; init; }
+
+    public bool SaveChangesCalled { get; private set; }
+
+    public IReadOnlyList<StockMovement> All => _movements;
+
+    public Task<StockMovement?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_movements.FirstOrDefault(m => m.Id == id));
+    }
+
+    public Task<IReadOnlyList<StockMovement>> GetByBatchAsync(
+        Guid batchId,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<StockMovement>>(
+            _movements.Where(m => m.BatchId == batchId).ToList());
+    }
+
+    public Task<(IReadOnlyList<StockMovement> Items, int TotalCount)> GetByStoreAsync(
+        Guid storeId,
+        MovementType? movementType,
+        DateTime? from,
+        DateTime? to,
+        Guid? relatedStoreId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _movements.Where(m => m.StoreId == storeId);
+
+        if (movementType is { } type)
+        {
+            query = query.Where(m => m.MovementType == type);
+        }
+
+        if (from is { } fromDate)
+        {
+            query = query.Where(m => m.OccurredAt >= fromDate);
+        }
+
+        if (to is { } toDate)
+        {
+            query = query.Where(m => m.OccurredAt <= toDate);
+        }
+
+        if (relatedStoreId is { } related)
+        {
+            query = query.Where(m => m.RelatedStoreId == related);
+        }
+
+        var all = query
+            .OrderByDescending(m => m.OccurredAt)
+            .ToList();
+
+        var items = all
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return Task.FromResult(((IReadOnlyList<StockMovement>)items, all.Count));
+    }
+
+    public Task<Guid> AddAsync(
+        StockMovement movement,
+        CancellationToken cancellationToken = default)
+    {
+        _movements.Add(movement);
+
+        return Task.FromResult(movement.Id);
+    }
+
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        SaveChangesCalled = true;
+
+        if (SaveException is not null)
+        {
+            throw SaveException;
+        }
+
+        await Task.Yield();
+
+        return 0;
     }
 }
 

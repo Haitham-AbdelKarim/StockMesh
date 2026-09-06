@@ -1,5 +1,6 @@
 using Application.Abstractions.Repositories;
 using Domain.Entities;
+using Domain.Enums;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +30,50 @@ public class StockMovementRepository : IStockMovementRepository
         return await _dbContext.StockMovements
             .Where(m => m.BatchId == batchId)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<StockMovement> Items, int TotalCount)> GetByStoreAsync(
+        Guid storeId,
+        MovementType? movementType,
+        DateTime? from,
+        DateTime? to,
+        Guid? relatedStoreId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.StockMovements
+            .Where(m => m.StoreId == storeId);
+
+        if (movementType is { } type)
+        {
+            query = query.Where(m => m.MovementType == type);
+        }
+
+        if (from is { } fromDate)
+        {
+            query = query.Where(m => m.OccurredAt >= fromDate);
+        }
+
+        if (to is { } toDate)
+        {
+            query = query.Where(m => m.OccurredAt <= toDate);
+        }
+
+        if (relatedStoreId is { } related)
+        {
+            query = query.Where(m => m.RelatedStoreId == related);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(m => m.OccurredAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
     }
 
     public async Task<Guid> AddAsync(

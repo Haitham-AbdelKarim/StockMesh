@@ -23,6 +23,15 @@ public class InventoryBatchRepository : IInventoryBatchRepository
             .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<InventoryBatch>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.InventoryBatches
+            .Where(b => ids.Contains(b.Id))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<InventoryBatch>> GetByProductAsync(
         Guid productId,
         CancellationToken cancellationToken = default)

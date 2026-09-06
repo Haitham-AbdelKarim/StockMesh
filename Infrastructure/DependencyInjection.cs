@@ -1,7 +1,12 @@
+using Application.Abstractions.Locking;
+using Application.Abstractions.Options;
 using Application.Abstractions.Persistence;
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
+using Application.Features.Reservations.Services;
+using Infrastructure.BackgroundJobs;
 using Infrastructure.Identity;
+using Infrastructure.Locking;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
@@ -43,6 +48,17 @@ public static class DependencyInjection
         services.AddScoped<IStoreRepository, StoreRepository>();
         services.AddScoped<IStoreUserRepository, StoreUserRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
+
+        services.AddSingleton<ReservationOptions>(_ =>
+            configuration.GetSection(ReservationOptions.SectionName).Get<ReservationOptions>()
+            ?? new ReservationOptions());
+
+        services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
+        services.AddSingleton<IReservationLockService, RedisReservationLockService>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<ReservationExpiryProcessor>();
+        services.AddHostedService<ReservationExpirySweeper>();
 
         return services;
     }

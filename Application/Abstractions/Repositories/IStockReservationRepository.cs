@@ -15,9 +15,13 @@ public interface IStockReservationRepository
         ReservationStatus status,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<StockReservation>> GetExpiredPendingAsync(
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default);
+
     Task<Guid> AddAsync(StockReservation reservation, CancellationToken cancellationToken = default);
 
     void Update(StockReservation reservation);
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

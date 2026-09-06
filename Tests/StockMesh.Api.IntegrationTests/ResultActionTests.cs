@@ -68,6 +68,17 @@ public class ResultActionTests
     }
 
     [Fact]
+    public void ForbiddenFailure_Returns403()
+    {
+        var controller = new TestController();
+
+        var action = controller.FromResult(Result<string>.Forbidden("denied"));
+
+        var result = action.Result.Should().BeOfType<ObjectResult>().Subject;
+        result.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
+    }
+
+    [Fact]
     public void DefaultFailure_Returns400()
     {
         var controller = new TestController();

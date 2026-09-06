@@ -38,7 +38,8 @@ public class StockReservation : BaseEntity
         decimal unitPrice,
         decimal? distanceKm = null,
         DateTime? deliveryEta = null,
-        int holdMinutes = 15)
+        int holdMinutes = 15,
+        DateTime? holdExpiresAt = null)
     {
         BatchId = batchId;
         RequestingStoreId = requestingStoreId;
@@ -48,7 +49,7 @@ public class StockReservation : BaseEntity
         DistanceKm = distanceKm;
         DeliveryEta = deliveryEta;
         Status = ReservationStatus.Pending;
-        HoldExpiresAt = DateTime.UtcNow.AddMinutes(holdMinutes);
+        HoldExpiresAt = holdExpiresAt ?? DateTime.UtcNow.AddMinutes(holdMinutes);
     }
 
     public void Resolve(ReservationStatus outcome)
