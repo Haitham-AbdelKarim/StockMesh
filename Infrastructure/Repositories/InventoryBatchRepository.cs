@@ -1,3 +1,4 @@
+using Application.Abstractions.Models;
 using Application.Abstractions.Repositories;
 using Domain.Entities;
 using Infrastructure.Persistence;
@@ -29,6 +30,62 @@ public class InventoryBatchRepository : IInventoryBatchRepository
         return await _dbContext.InventoryBatches
             .Where(b => b.ProductId == productId)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<InventoryBatch?> GetLatestByProductAsync(
+        Guid storeId,
+        Guid productId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.InventoryBatches
+            .Where(b => b.StoreId == storeId && b.ProductId == productId)
+            .OrderByDescending(b => b.ReceivedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<InventoryBatch> Items, int TotalCount)> GetBatchesAsync(
+        Guid storeId,
+        Guid? productId,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.InventoryBatches
+            .Where(b => b.StoreId == storeId);
+
+        if (productId is { } id)
+        {
+            query = query.Where(b => b.ProductId == id);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(b => b.ReceivedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
+    public async Task<IReadOnlyList<ProductStockSummary>> GetProductStockSummariesAsync(
+        Guid storeId,
+        CancellationToken cancellationToken = default)
+    {
+        var batches = await _dbContext.InventoryBatches
+            .Where(b => b.StoreId == storeId)
+            .ToListAsync(cancellationToken);
+
+        return batches
+            .GroupBy(b => b.ProductId)
+            .Select(g => new ProductStockSummary(
+                g.Key,
+                g.Sum(b => b.QuantityRemaining),
+                g.Sum(b => b.SharedQuantity),
+                g.Count()))
+            .OrderBy(s => s.ProductId)
+            .ToList();
     }
 
     public async Task<Guid> AddAsync(

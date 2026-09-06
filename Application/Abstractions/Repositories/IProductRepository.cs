@@ -11,4 +11,10 @@ public interface IProductRepository
         int page,
         int pageSize,
         CancellationToken cancellationToken = default);
+
+    Task<Product?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Product>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default);
 }
