@@ -7,6 +7,10 @@ public interface IInventoryBatchRepository
 {
     Task<InventoryBatch?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<InventoryBatch>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<InventoryBatch>> GetByProductAsync(Guid productId, CancellationToken cancellationToken = default);
 
     Task<InventoryBatch?> GetLatestByProductAsync(
