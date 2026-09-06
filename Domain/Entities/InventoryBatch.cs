@@ -106,6 +106,52 @@ public class InventoryBatch : BaseEntity
         IsShared = true;
     }
 
+    public void Unshare(int quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be positive.");
+        }
+
+        if (quantity > SharedQuantity)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(quantity),
+                $"Cannot unshare {quantity} units — only {SharedQuantity} in the shared pool.");
+        }
+
+        SharedQuantity -= quantity;
+        QuantityRemaining += quantity;
+        IsShared = SharedQuantity > 0;
+    }
+
+    public void UpdateDetails(
+        decimal? unitSalePrice = null,
+        int? reorderPoint = null,
+        int? leadTimeDays = null,
+        DateTime? expiryDate = null)
+    {
+        if (unitSalePrice is { } price && price < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(unitSalePrice), "Unit sale price cannot be negative.");
+        }
+
+        if (reorderPoint is { } reorder && reorder < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(reorderPoint), "Reorder point cannot be negative.");
+        }
+
+        if (leadTimeDays is { } lead && lead < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(leadTimeDays), "Lead time cannot be negative.");
+        }
+
+        UnitSalePrice = unitSalePrice ?? UnitSalePrice;
+        ReorderPoint = reorderPoint ?? ReorderPoint;
+        LeadTimeDays = leadTimeDays ?? LeadTimeDays;
+        ExpiryDate = expiryDate ?? ExpiryDate;
+    }
+
     public void ConsumePrivate(int quantity)
     {
         if (quantity <= 0)

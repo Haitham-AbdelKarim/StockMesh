@@ -137,4 +137,106 @@ public class InventoryBatchTests
         batch1.ProductId.Should().Be(productId);
         batch2.ProductId.Should().Be(productId);
     }
+
+    [Fact]
+    public void Unshare_moves_shared_quantity_back_to_remaining()
+    {
+        var batch = CreateBatch(quantityRemaining: 10, sharedQuantity: 3);
+
+        batch.Unshare(2);
+
+        batch.QuantityRemaining.Should().Be(9);
+        batch.SharedQuantity.Should().Be(1);
+        batch.IsShared.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Unshare_all_marks_batch_as_not_shared()
+    {
+        var batch = CreateBatch(quantityRemaining: 10, sharedQuantity: 3);
+
+        batch.Unshare(3);
+
+        batch.QuantityRemaining.Should().Be(10);
+        batch.SharedQuantity.Should().Be(0);
+        batch.IsShared.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Unshare_throws_when_quantity_is_zero_or_negative(int quantity)
+    {
+        var batch = CreateBatch(quantityRemaining: 10, sharedQuantity: 3);
+
+        var act = () => batch.Unshare(quantity);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Unshare_throws_when_exceeding_shared_quantity()
+    {
+        var batch = CreateBatch(quantityRemaining: 10, sharedQuantity: 2);
+
+        var act = () => batch.Unshare(5);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void UpdateDetails_only_changes_provided_fields()
+    {
+        var batch = CreateBatch(quantityRemaining: 10, sharedQuantity: 3);
+
+        batch.UpdateDetails(unitSalePrice: 12m, reorderPoint: 7);
+
+        batch.UnitSalePrice.Should().Be(12m);
+        batch.ReorderPoint.Should().Be(7);
+        batch.LeadTimeDays.Should().Be(0);
+        batch.ExpiryDate.Should().BeNull();
+        batch.QuantityRemaining.Should().Be(7);
+        batch.SharedQuantity.Should().Be(3);
+    }
+
+    [Fact]
+    public void UpdateDetails_throws_when_unit_sale_price_is_negative()
+    {
+        var batch = CreateBatch(quantityRemaining: 10);
+
+        var act = () => batch.UpdateDetails(unitSalePrice: -1m);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void UpdateDetails_throws_when_reorder_point_is_negative()
+    {
+        var batch = CreateBatch(quantityRemaining: 10);
+
+        var act = () => batch.UpdateDetails(reorderPoint: -1);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void UpdateDetails_throws_when_lead_time_is_negative()
+    {
+        var batch = CreateBatch(quantityRemaining: 10);
+
+        var act = () => batch.UpdateDetails(leadTimeDays: -1);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void UpdateDetails_sets_expiry_date()
+    {
+        var batch = CreateBatch(quantityRemaining: 10);
+        var expiry = DateTime.UtcNow.AddDays(30);
+
+        batch.UpdateDetails(expiryDate: expiry);
+
+        batch.ExpiryDate.Should().Be(expiry);
+    }
 }
