@@ -6,6 +6,7 @@ public enum FailureKind
 {
     BadRequest,
     Unauthorized,
+    Forbidden,
     NotFound,
     Validation,
     Conflict
@@ -60,6 +61,11 @@ public class Result : IResult
         return new Result(false, error, FailureKind.Unauthorized, null);
     }
 
+    public static Result Forbidden(string error)
+    {
+        return new Result(false, error, FailureKind.Forbidden, null);
+    }
+
     public static Result NotFound(string error)
     {
         return new Result(false, error, FailureKind.NotFound, null);
@@ -112,6 +118,11 @@ public class Result<T> : Result
     public static new Result<T> Unauthorized(string error)
     {
         return new Result<T>(default, false, error, FailureKind.Unauthorized, null);
+    }
+
+    public static new Result<T> Forbidden(string error)
+    {
+        return new Result<T>(default, false, error, FailureKind.Forbidden, null);
     }
 
     public static new Result<T> NotFound(string error)

@@ -20,6 +20,8 @@ public class AppDbContext : IdentityDbContext<StoreUser, IdentityRole<Guid>, Gui
 
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     public DbSet<Store> Stores => Set<Store>();
 
     public DbSet<Product> Products => Set<Product>();

@@ -41,6 +41,15 @@ public class StockReservationRepository : IStockReservationRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<StockReservation>> GetExpiredPendingAsync(
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.StockReservations
+            .Where(r => r.Status == ReservationStatus.Pending && r.HoldExpiresAt <= nowUtc)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Guid> AddAsync(
         StockReservation reservation,
         CancellationToken cancellationToken = default)
