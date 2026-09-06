@@ -25,6 +25,10 @@ public interface IInventoryBatchRepository
         Guid storeId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<InventoryBatch>> GetSharedByStoresAsync(
+        IReadOnlyCollection<Guid> storeIds,
+        CancellationToken cancellationToken = default);
+
     Task<Guid> AddAsync(InventoryBatch batch, CancellationToken cancellationToken = default);
 
     void Update(InventoryBatch batch);

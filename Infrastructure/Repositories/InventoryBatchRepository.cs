@@ -88,6 +88,15 @@ public class InventoryBatchRepository : IInventoryBatchRepository
             .ToList();
     }
 
+    public async Task<IReadOnlyList<InventoryBatch>> GetSharedByStoresAsync(
+        IReadOnlyCollection<Guid> storeIds,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.InventoryBatches
+            .Where(b => storeIds.Contains(b.StoreId) && b.SharedQuantity > 0)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Guid> AddAsync(
         InventoryBatch batch,
         CancellationToken cancellationToken = default)
