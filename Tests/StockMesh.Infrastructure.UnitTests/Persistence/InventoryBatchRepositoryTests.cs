@@ -134,4 +134,23 @@ public class InventoryBatchRepositoryTests : IDisposable
         productSummary.TotalSharedQuantity.Should().Be(2);
         productSummary.BatchCount.Should().Be(2);
     }
+
+    [Fact]
+    public async Task GetSharedByStoresAsync_ReturnsOnlySharedBatchesForGivenStores()
+    {
+        var batches = await _repository.GetSharedByStoresAsync(new[] { _storeId, _otherStoreId });
+
+        batches.Should().ContainSingle();
+        batches[0].Id.Should().Be(_batch1Id);
+        batches[0].SharedQuantity.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetSharedByStoresAsync_ExcludesPrivateOnlyBatches()
+    {
+        var batches = await _repository.GetSharedByStoresAsync(new[] { _storeId });
+
+        batches.Should().ContainSingle();
+        batches[0].Id.Should().Be(_batch1Id);
+    }
 }

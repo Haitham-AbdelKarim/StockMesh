@@ -23,6 +23,14 @@ internal sealed class FakeStoreRepository : IStoreRepository
         return Task.FromResult(_stores.GetValueOrDefault(id));
     }
 
+    public Task<IReadOnlyList<Store>> GetByVerticalAsync(
+        VerticalCategory verticalCategory,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<Store>>(
+            _stores.Values.Where(s => s.VerticalCategory == verticalCategory).ToList());
+    }
+
     public Task<Guid> AddAsync(Store store, CancellationToken cancellationToken = default)
     {
         _stores[store.Id] = store;
@@ -175,6 +183,16 @@ internal sealed class FakeInventoryBatchRepository : IInventoryBatchRepository
                     g.Sum(b => b.SharedQuantity),
                     g.Count()))
                 .OrderBy(s => s.ProductId)
+                .ToList());
+    }
+
+    public Task<IReadOnlyList<InventoryBatch>> GetSharedByStoresAsync(
+        IReadOnlyCollection<Guid> storeIds,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<InventoryBatch>>(
+            _batches.Values
+                .Where(b => storeIds.Contains(b.StoreId) && b.SharedQuantity > 0)
                 .ToList());
     }
 

@@ -1,5 +1,6 @@
 using Application.Abstractions.Repositories;
 using Domain.Entities;
+using Domain.Enums;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +21,15 @@ public class StoreRepository : IStoreRepository
     {
         return await _dbContext.Stores
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Store>> GetByVerticalAsync(
+        VerticalCategory verticalCategory,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Stores
+            .Where(s => s.VerticalCategory == verticalCategory)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<Guid> AddAsync(
