@@ -30,6 +30,11 @@ public class InventoryBatchConfiguration : IEntityTypeConfiguration<InventoryBat
             .HasForeignKey(b => b.StoreId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne<Product>()
+            .WithMany()
+            .HasForeignKey(b => b.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Ignore(b => b.IsShared);
     }
 }

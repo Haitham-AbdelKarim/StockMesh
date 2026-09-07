@@ -26,6 +26,10 @@ public class DailyStoreMetricConfiguration : IEntityTypeConfiguration<DailyStore
 
         builder.Property(m => m.NetProfit).HasColumnType("decimal(18,2)");
 
+        builder.Property(m => m.RowVersion)
+            .IsRowVersion()
+            .IsRequired();
+
         builder.HasIndex(m => new { m.StoreId, m.Date })
             .IsUnique()
             .HasDatabaseName("IX_DailyStoreMetrics_StoreId_Date");

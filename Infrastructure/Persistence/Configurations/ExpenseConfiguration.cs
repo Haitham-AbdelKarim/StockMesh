@@ -23,6 +23,9 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         builder.HasIndex(e => e.StoreId)
             .HasDatabaseName("IX_Expenses_StoreId");
 
+        builder.HasIndex(e => new { e.StoreId, e.IncurredAt })
+            .HasDatabaseName("IX_Expenses_StoreId_IncurredAt");
+
         builder.HasOne<Store>()
             .WithMany()
             .HasForeignKey(e => e.StoreId)

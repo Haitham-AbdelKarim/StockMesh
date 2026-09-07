@@ -22,9 +22,16 @@ public class DailyProductMetricConfiguration : IEntityTypeConfiguration<DailyPro
 
         builder.Property(m => m.TransfersOutRevenue).HasColumnType("decimal(18,2)");
 
+        builder.Property(m => m.RowVersion)
+            .IsRowVersion()
+            .IsRequired();
+
         builder.HasIndex(m => new { m.StoreId, m.ProductId, m.Date })
             .IsUnique()
             .HasDatabaseName("IX_DailyProductMetrics_StoreId_ProductId_Date");
+
+        builder.HasIndex(m => new { m.StoreId, m.Date })
+            .HasDatabaseName("IX_DailyProductMetrics_StoreId_Date");
 
         builder.HasOne<Store>()
             .WithMany()
