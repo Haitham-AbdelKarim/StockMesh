@@ -25,6 +25,16 @@ public interface IStockReservationRepository
         DateTime to,
         CancellationToken cancellationToken = default);
 
+    Task<(IReadOnlyList<StockReservation> Items, int TotalCount)> GetForStoreAsync(
+        Guid storeId,
+        bool? incoming,
+        ReservationStatus? status,
+        DateTime? from,
+        DateTime? to,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
     Task<Guid> AddAsync(StockReservation reservation, CancellationToken cancellationToken = default);
 
     void Update(StockReservation reservation);

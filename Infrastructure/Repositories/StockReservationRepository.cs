@@ -63,6 +63,57 @@ public class StockReservationRepository : IStockReservationRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<(IReadOnlyList<StockReservation> Items, int TotalCount)> GetForStoreAsync(
+        Guid storeId,
+        bool? incoming,
+        ReservationStatus? status,
+        DateTime? from,
+        DateTime? to,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.StockReservations.AsQueryable();
+
+        if (incoming is true)
+        {
+            query = query.Where(r => r.OwningStoreId == storeId);
+        }
+        else if (incoming is false)
+        {
+            query = query.Where(r => r.RequestingStoreId == storeId);
+        }
+        else
+        {
+            query = query.Where(r => r.RequestingStoreId == storeId || r.OwningStoreId == storeId);
+        }
+
+        if (status is { } reservationStatus)
+        {
+            query = query.Where(r => r.Status == reservationStatus);
+        }
+
+        if (from is { } fromDate)
+        {
+            query = query.Where(r => r.CreatedAt >= fromDate);
+        }
+
+        if (to is { } toDate)
+        {
+            query = query.Where(r => r.CreatedAt <= toDate);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(r => r.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
     public async Task<Guid> AddAsync(
         StockReservation reservation,
         CancellationToken cancellationToken = default)

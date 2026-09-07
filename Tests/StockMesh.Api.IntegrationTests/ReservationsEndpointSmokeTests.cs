@@ -39,6 +39,40 @@ public class ReservationsEndpointSmokeTests : IClassFixture<TestApiFactory>
     }
 
     [Fact]
+    public async Task GetReservations_WithoutToken_ReturnsUnauthorized()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/v1/reservations");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GetReservations_WithInvalidStatus_ReturnsUnprocessableEntity()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", TestAuth.CreateAccessToken(Guid.NewGuid()));
+
+        var response = await client.GetAsync("/api/v1/reservations?status=999");
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
+    public async Task GetReservations_WithZeroPageSize_ReturnsUnprocessableEntity()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", TestAuth.CreateAccessToken(Guid.NewGuid()));
+
+        var response = await client.GetAsync("/api/v1/reservations?pageSize=0");
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
     public async Task Reserve_WithZeroQuantity_ReturnsUnprocessableEntity()
     {
         var client = _factory.CreateClient();

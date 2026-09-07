@@ -1,6 +1,8 @@
+using Application.Common.Models;
 using Application.DTOs.Reservations;
 using Application.Features.Reservations.Commands.ReserveStock;
 using Application.Features.Reservations.Commands.ResolveReservation;
+using Application.Features.Reservations.Queries.GetReservations;
 using Asp.Versioning;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -19,6 +21,14 @@ public class ReservationsController : ControllerBase
     public ReservationsController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<PaginatedList<ReservationDetailResponse>>> GetReservations(
+        [FromQuery] GetReservationsQuery query,
+        CancellationToken cancellationToken)
+    {
+        return this.FromResult(await _mediator.Send(query, cancellationToken));
     }
 
     [HttpPost]

@@ -23,6 +23,14 @@ internal sealed class FakeStoreRepository : IStoreRepository
         return Task.FromResult(_stores.GetValueOrDefault(id));
     }
 
+    public Task<IReadOnlyList<Store>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<Store>>(
+            _stores.Values.Where(s => ids.Contains(s.Id)).ToList());
+    }
+
     public Task<IReadOnlyList<Store>> GetByVerticalAsync(
         VerticalCategory verticalCategory,
         CancellationToken cancellationToken = default)
