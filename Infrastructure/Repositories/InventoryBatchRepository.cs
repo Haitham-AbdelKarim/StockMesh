@@ -60,7 +60,7 @@ public class InventoryBatchRepository : IInventoryBatchRepository
         CancellationToken cancellationToken = default)
     {
         var query = _dbContext.InventoryBatches
-            .Where(b => b.StoreId == storeId);
+            .Where(b => b.StoreId == storeId && (b.QuantityRemaining > 0 || b.SharedQuantity > 0));
 
         if (productId is { } id)
         {
@@ -83,7 +83,7 @@ public class InventoryBatchRepository : IInventoryBatchRepository
         CancellationToken cancellationToken = default)
     {
         var batches = await _dbContext.InventoryBatches
-            .Where(b => b.StoreId == storeId)
+            .Where(b => b.StoreId == storeId && (b.QuantityRemaining > 0 || b.SharedQuantity > 0))
             .ToListAsync(cancellationToken);
 
         return batches
@@ -102,7 +102,7 @@ public class InventoryBatchRepository : IInventoryBatchRepository
         CancellationToken cancellationToken = default)
     {
         var batches = await _dbContext.InventoryBatches
-            .Where(b => b.StoreId == storeId)
+            .Where(b => b.StoreId == storeId && (b.QuantityRemaining > 0 || b.SharedQuantity > 0))
             .ToListAsync(cancellationToken);
 
         return batches
