@@ -129,6 +129,7 @@ public class RecordSaleCommandHandlerTests
             Clock,
             new FakeInventoryBatchRepository(allBatches),
             movementRepository,
+            new FakeDailyMetricsMaterializer(),
             unitOfWork ?? new FakeUnitOfWork(),
             NullLogger<RecordSaleCommandHandler>.Instance);
     }

@@ -4,6 +4,7 @@ using Application.Features.StockMovements.Commands.RecordRestock;
 using Domain.Entities;
 using Domain.Enums;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using StockMesh.Application.UnitTests.Fakes;
 
 namespace StockMesh.Application.UnitTests.Features.StockMovements;
@@ -111,6 +112,9 @@ public class RecordRestockCommandHandlerTests
             Clock,
             batchRepository,
             productRepository,
-            movementRepository);
+            movementRepository,
+            new FakeDailyMetricsMaterializer(),
+            new FakeUnitOfWork(),
+            NullLogger<RecordRestockCommandHandler>.Instance);
     }
 }

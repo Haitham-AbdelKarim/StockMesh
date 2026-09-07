@@ -13,5 +13,11 @@ public interface IApplicationDbContext
 
     DbSet<AuditLog> AuditLogs { get; }
 
+    DbSet<Expense> Expenses { get; }
+
+    DbSet<DailyStoreMetric> DailyStoreMetrics { get; }
+
+    DbSet<DailyProductMetric> DailyProductMetrics { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

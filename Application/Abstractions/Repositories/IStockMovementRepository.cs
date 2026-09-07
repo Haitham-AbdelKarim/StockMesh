@@ -21,6 +21,12 @@ public interface IStockMovementRepository
         int pageSize,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<StockMovement>> GetForStoresAsync(
+        IReadOnlyCollection<Guid> storeIds,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default);
+
     Task<Guid> AddAsync(StockMovement movement, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

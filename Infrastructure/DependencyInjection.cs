@@ -3,6 +3,7 @@ using Application.Abstractions.Options;
 using Application.Abstractions.Persistence;
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
+using Application.Features.Metrics.Services;
 using Application.Features.Reservations.Services;
 using Infrastructure.BackgroundJobs;
 using Infrastructure.Identity;
@@ -48,6 +49,10 @@ public static class DependencyInjection
         services.AddScoped<IStoreRepository, StoreRepository>();
         services.AddScoped<IStoreUserRepository, StoreUserRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IExpenseRepository, ExpenseRepository>();
+        services.AddScoped<IDailyStoreMetricRepository, DailyStoreMetricRepository>();
+        services.AddScoped<IDailyProductMetricRepository, DailyProductMetricRepository>();
+        services.AddScoped<IDailyMetricsMaterializer, DailyMetricsMaterializer>();
 
         services.AddSingleton<ReservationOptions>(_ =>
             configuration.GetSection(ReservationOptions.SectionName).Get<ReservationOptions>()

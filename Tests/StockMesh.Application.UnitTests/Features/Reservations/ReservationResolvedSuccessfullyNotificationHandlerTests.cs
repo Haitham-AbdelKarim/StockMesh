@@ -125,6 +125,48 @@ public class ReservationResolvedSuccessfullyNotificationHandlerTests
         await act.Should().NotThrowAsync();
     }
 
+    [Fact]
+    public async Task Handle_OnSuccess_RecomputesMetricsForBothStoresAndCommits()
+    {
+        var ownerBatch = CreateSharedBatch(10);
+        var reservation = CreateSuccessReservation(ownerBatch.Id, 3);
+        var materializer = new FakeDailyMetricsMaterializer();
+        var unitOfWork = new FakeUnitOfWork();
+        var handler = CreateHandler(
+            new FakeStockReservationRepository(reservation),
+            new FakeInventoryBatchRepository(ownerBatch),
+            new FakeStockMovementRepository(),
+            materializer,
+            unitOfWork);
+
+        await handler.Handle(
+            new ReservationResolvedSuccessfullyNotification(reservation.Id),
+            CancellationToken.None);
+
+        materializer.Calls.Should().ContainSingle();
+        materializer.Calls.Single().StoreIds.Should().BeEquivalentTo(new[] { OwnerStoreId, RequesterStoreId });
+        materializer.Calls.Single().Date.Should().Be(Clock.UtcNow.Date);
+        unitOfWork.Transactions.Should().ContainSingle().Subject.Committed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_WhenReservationMissing_DoesNotRecompute()
+    {
+        var materializer = new FakeDailyMetricsMaterializer();
+        var handler = CreateHandler(
+            new FakeStockReservationRepository(),
+            new FakeInventoryBatchRepository(),
+            new FakeStockMovementRepository(),
+            materializer,
+            new FakeUnitOfWork());
+
+        await handler.Handle(
+            new ReservationResolvedSuccessfullyNotification(Guid.NewGuid()),
+            CancellationToken.None);
+
+        materializer.CallCount.Should().Be(0);
+    }
+
     private static InventoryBatch CreateSharedBatch(int sharedQuantity)
     {
         var batch = new InventoryBatch(OwnerStoreId, Product.Id, 20, 5m, 10m);
@@ -151,13 +193,17 @@ public class ReservationResolvedSuccessfullyNotificationHandlerTests
     private static ReservationResolvedSuccessfullyNotificationHandler CreateHandler(
         FakeStockReservationRepository reservationRepository,
         FakeInventoryBatchRepository batchRepository,
-        FakeStockMovementRepository movementRepository)
+        FakeStockMovementRepository movementRepository,
+        FakeDailyMetricsMaterializer? materializer = null,
+        FakeUnitOfWork? unitOfWork = null)
     {
         return new ReservationResolvedSuccessfullyNotificationHandler(
             reservationRepository,
             batchRepository,
             movementRepository,
+            materializer ?? new FakeDailyMetricsMaterializer(),
             Clock,
+            unitOfWork ?? new FakeUnitOfWork(),
             NullLogger<ReservationResolvedSuccessfullyNotificationHandler>.Instance);
     }
 }

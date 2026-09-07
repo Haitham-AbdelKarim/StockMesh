@@ -97,6 +97,26 @@ public class InventoryBatchRepository : IInventoryBatchRepository
             .ToList();
     }
 
+    public async Task<IReadOnlyList<LowStockItem>> GetLowStockItemsAsync(
+        Guid storeId,
+        CancellationToken cancellationToken = default)
+    {
+        var batches = await _dbContext.InventoryBatches
+            .Where(b => b.StoreId == storeId)
+            .ToListAsync(cancellationToken);
+
+        return batches
+            .GroupBy(b => b.ProductId)
+            .Select(g => new LowStockItem(
+                g.Key,
+                g.Sum(b => b.QuantityRemaining),
+                g.Max(b => b.ReorderPoint),
+                g.Max(b => b.LeadTimeDays)))
+            .Where(item => item.TotalQuantityRemaining <= item.ReorderPoint)
+            .OrderBy(item => item.ProductId)
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<InventoryBatch>> GetSharedByStoresAsync(
         IReadOnlyCollection<Guid> storeIds,
         CancellationToken cancellationToken = default)

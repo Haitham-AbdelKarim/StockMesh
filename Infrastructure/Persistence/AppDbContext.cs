@@ -26,6 +26,12 @@ public class AppDbContext : IdentityDbContext<StoreUser, IdentityRole<Guid>, Gui
 
     public DbSet<Product> Products => Set<Product>();
 
+    public DbSet<Expense> Expenses => Set<Expense>();
+
+    public DbSet<DailyStoreMetric> DailyStoreMetrics => Set<DailyStoreMetric>();
+
+    public DbSet<DailyProductMetric> DailyProductMetrics => Set<DailyProductMetric>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

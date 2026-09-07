@@ -19,6 +19,7 @@ public sealed class RecordSaleCommandHandler :
     private readonly IDateTimeProvider _clock;
     private readonly IInventoryBatchRepository _inventoryBatchRepository;
     private readonly IStockMovementRepository _stockMovementRepository;
+    private readonly IDailyMetricsMaterializer _dailyMetricsMaterializer;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<RecordSaleCommandHandler> _logger;
 
@@ -27,6 +28,7 @@ public sealed class RecordSaleCommandHandler :
         IDateTimeProvider clock,
         IInventoryBatchRepository inventoryBatchRepository,
         IStockMovementRepository stockMovementRepository,
+        IDailyMetricsMaterializer dailyMetricsMaterializer,
         IUnitOfWork unitOfWork,
         ILogger<RecordSaleCommandHandler> logger)
     {
@@ -34,6 +36,7 @@ public sealed class RecordSaleCommandHandler :
         _clock = clock;
         _inventoryBatchRepository = inventoryBatchRepository;
         _stockMovementRepository = stockMovementRepository;
+        _dailyMetricsMaterializer = dailyMetricsMaterializer;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -86,6 +89,13 @@ public sealed class RecordSaleCommandHandler :
 
         try
         {
+            await _stockMovementRepository.SaveChangesAsync(cancellationToken);
+
+            await _dailyMetricsMaterializer.RecomputeDayAsync(
+                [_currentUser.StoreId],
+                _clock.UtcNow.Date,
+                cancellationToken);
+
             await _stockMovementRepository.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException ex)
