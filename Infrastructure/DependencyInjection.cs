@@ -6,6 +6,7 @@ using Application.Abstractions.Services;
 using Application.Features.Metrics.Services;
 using Application.Features.Reservations.Services;
 using Infrastructure.BackgroundJobs;
+using Infrastructure.ExternalServices;
 using Infrastructure.Identity;
 using Infrastructure.Locking;
 using Infrastructure.Persistence;
@@ -60,6 +61,20 @@ public static class DependencyInjection
 
         services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
         services.AddSingleton<IReservationLockService, RedisReservationLockService>();
+
+        var forecastingSettings = configuration.GetSection(ForecastingSettings.SectionName).Get<ForecastingSettings>()
+            ?? throw new InvalidOperationException(
+                "Missing 'Forecasting' configuration section. Provide the forecasting-service address (see docker-compose.yml).");
+        forecastingSettings.Validate();
+        services.AddSingleton(forecastingSettings);
+        services.AddHttpClient<IForecastingClient, ForecastingServiceClient>(client =>
+        {
+            client.BaseAddress = new Uri(forecastingSettings.BaseUrl, UriKind.Absolute);
+        })
+        .AddStandardResilienceHandler(options =>
+        {
+            options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(forecastingSettings.TimeoutSeconds);
+        });
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<ReservationExpiryProcessor>();

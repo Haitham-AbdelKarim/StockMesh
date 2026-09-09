@@ -8,9 +8,11 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - Forecasting__BaseUrl=http://forecasting-service:8000
     depends_on:
       - sqlserver
       - redis
+      - forecasting-service
 
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -28,6 +30,13 @@ services:
     container_name: stockmesh-redis
     ports:
       - "6379:6379"
+
+  forecasting-service:
+    build:
+      context: ./forecasting-service
+    container_name: stockmesh-forecasting
+    ports:
+      - "8000:8000"
 
 volumes:
   sqlserver-data:
