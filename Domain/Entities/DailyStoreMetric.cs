@@ -56,6 +56,6 @@ public class DailyStoreMetric : BaseEntity
         UnitsSold = unitsSold;
         TransfersOutUnits = transfersOutUnits;
         TransfersInUnits = transfersInUnits;
-        NetProfit = salesRevenue + transfersOutRevenue - costOfGoodsSold - stockPurchases - expenseTotal;
+        NetProfit = salesRevenue + transfersOutRevenue - costOfGoodsSold - expenseTotal;
     }
 }

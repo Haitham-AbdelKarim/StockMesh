@@ -33,7 +33,7 @@ public class GetDashboardSummaryQueryHandlerTests
             30m,
             40m,
             10m,
-            100m + 20m - 30m - 40m - 10m,
+            100m + 20m - 30m - 10m,
             5,
             2,
             1));

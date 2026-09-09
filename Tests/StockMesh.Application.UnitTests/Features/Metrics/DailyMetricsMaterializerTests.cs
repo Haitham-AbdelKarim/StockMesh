@@ -57,7 +57,7 @@ public class DailyMetricsMaterializerTests
         storeMetric.CostOfGoodsSold.Should().Be(165m);
         storeMetric.StockPurchases.Should().Be(532m);
         storeMetric.ExpenseTotal.Should().Be(20m);
-        storeMetric.NetProfit.Should().Be(295m + 125m - 165m - 532m - 20m);
+        storeMetric.NetProfit.Should().Be(295m + 125m - 165m - 20m);
         storeMetric.UnitsSold.Should().Be(25);
         storeMetric.TransfersOutUnits.Should().Be(10);
         storeMetric.TransfersInUnits.Should().Be(8);
