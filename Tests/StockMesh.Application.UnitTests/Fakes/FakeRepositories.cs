@@ -338,6 +338,18 @@ internal sealed class FakeStockMovementRepository : IStockMovementRepository
                 .ToList());
     }
 
+    public Task<IReadOnlyList<StockMovement>> GetByTypeInRangeAsync(
+        MovementType movementType,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<StockMovement>>(
+            _movements
+                .Where(m => m.MovementType == movementType && m.OccurredAt >= from && m.OccurredAt < to)
+                .ToList());
+    }
+
     public Task<Guid> AddAsync(
         StockMovement movement,
         CancellationToken cancellationToken = default)

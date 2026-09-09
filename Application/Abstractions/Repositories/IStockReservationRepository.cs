@@ -25,6 +25,11 @@ public interface IStockReservationRepository
         DateTime to,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<StockReservation>> GetByDateRangeAsync(
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default);
+
     Task<(IReadOnlyList<StockReservation> Items, int TotalCount)> GetForStoreAsync(
         Guid storeId,
         bool? incoming,

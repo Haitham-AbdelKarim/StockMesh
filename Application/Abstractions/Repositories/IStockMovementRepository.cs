@@ -27,6 +27,12 @@ public interface IStockMovementRepository
         DateTime to,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<StockMovement>> GetByTypeInRangeAsync(
+        MovementType movementType,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default);
+
     Task<Guid> AddAsync(StockMovement movement, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

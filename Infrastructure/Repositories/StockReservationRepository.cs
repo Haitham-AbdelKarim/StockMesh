@@ -63,6 +63,16 @@ public class StockReservationRepository : IStockReservationRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<StockReservation>> GetByDateRangeAsync(
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.StockReservations
+            .Where(r => r.CreatedAt >= from && r.CreatedAt < to)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<(IReadOnlyList<StockReservation> Items, int TotalCount)> GetForStoreAsync(
         Guid storeId,
         bool? incoming,

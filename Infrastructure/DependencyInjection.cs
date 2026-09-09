@@ -3,6 +3,7 @@ using Application.Abstractions.Options;
 using Application.Abstractions.Persistence;
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
+using Application.Features.MarketSignals.Services;
 using Application.Features.Metrics.Services;
 using Application.Features.Reservations.Services;
 using Infrastructure.BackgroundJobs;
@@ -77,8 +78,15 @@ public static class DependencyInjection
         });
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<IDailyMarketSignalRepository, DailyMarketSignalRepository>();
         services.AddScoped<ReservationExpiryProcessor>();
+        services.AddScoped<MarketSignalAggregator>();
         services.AddHostedService<ReservationExpirySweeper>();
+        services.AddHostedService<MarketSignalSweeper>();
+
+        services.AddSingleton<MarketSignalOptions>(_ =>
+            configuration.GetSection(MarketSignalOptions.SectionName).Get<MarketSignalOptions>()
+            ?? new MarketSignalOptions());
 
         return services;
     }

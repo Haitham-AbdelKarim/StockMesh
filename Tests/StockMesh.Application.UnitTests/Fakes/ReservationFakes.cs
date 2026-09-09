@@ -161,6 +161,17 @@ internal sealed class FakeStockReservationRepository : IStockReservationReposito
                 .ToList());
     }
 
+    public Task<IReadOnlyList<StockReservation>> GetByDateRangeAsync(
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<StockReservation>>(
+            _reservations
+                .Where(r => r.CreatedAt >= from && r.CreatedAt < to)
+                .ToList());
+    }
+
     public Task<(IReadOnlyList<StockReservation> Items, int TotalCount)> GetForStoreAsync(
         Guid storeId,
         bool? incoming,
