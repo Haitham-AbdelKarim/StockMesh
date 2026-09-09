@@ -19,5 +19,10 @@ public class TestApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("JwtSettings:Audience", "StockMesh");
         builder.UseSetting("JwtSettings:AccessTokenExpirationMinutes", "15");
         builder.UseSetting("JwtSettings:RefreshTokenExpirationDays", "7");
+
+        // Every required config section must be mirrored here, or the test host
+        // fails to build. Values are dummies: smoke tests never call this client.
+        builder.UseSetting("Forecasting:BaseUrl", "http://localhost:8000");
+        builder.UseSetting("Forecasting:TimeoutSeconds", "30");
     }
 }
