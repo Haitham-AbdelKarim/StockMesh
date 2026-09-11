@@ -27,6 +27,8 @@ public class Recommendation : BaseEntity
 
     public DateTime GeneratedAt { get; private set; }
 
+    public string? ForecastSnapshotJson { get; private set; }
+
     private Recommendation()
     {
     }
@@ -55,5 +57,10 @@ public class Recommendation : BaseEntity
         ModelVersion = modelVersion;
         Reason = reason;
         GeneratedAt = generatedAt;
+    }
+
+    public void SetForecastSnapshot(string? snapshotJson)
+    {
+        ForecastSnapshotJson = snapshotJson;
     }
 }

@@ -15,4 +15,5 @@ public sealed record RecommendationResponse(
     double ConfidenceScore,
     string ModelVersion,
     string Reason,
-    DateTime GeneratedAt);
+    DateTime GeneratedAt,
+    ForecastSnapshot? Forecast);

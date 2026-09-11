@@ -1,5 +1,6 @@
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
+using Application.DTOs.Recommendations;
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -142,7 +143,8 @@ public sealed class RecommendationGenerator
     private sealed record EvaluatedProduct(
         ProductDecision Decision,
         string ModelVersion,
-        IReadOnlyList<(InventoryBatch Batch, BatchDecision Decision)> BatchDecisions)
+        IReadOnlyList<(InventoryBatch Batch, BatchDecision Decision)> BatchDecisions,
+        string? ForecastSnapshotJson = null)
     {
         public int Count => 1 + BatchDecisions.Count;
     }
@@ -230,7 +232,16 @@ public sealed class RecommendationGenerator
             effective = decision with { Action = strongest.Decision.Action, Reason = strongest.Decision.Reason };
         }
 
-        var evaluated = new EvaluatedProduct(effective, "prophet-v1", batchDecisions);
+        var evaluated = new EvaluatedProduct(
+            effective,
+            "prophet-v1",
+            batchDecisions,
+            RecommendationMapper.SerializeSnapshot(new ForecastSnapshot(
+                forecast.Dates,
+                actuals,
+                forecast.Yhat,
+                forecast.YhatLower,
+                forecast.YhatUpper)));
         await PersistAsync(storeId, productId, evaluated, now, cancellationToken);
 
         return evaluated;
@@ -369,7 +380,7 @@ public sealed class RecommendationGenerator
                 _recommendationRepository.RemoveRange([productRow]);
             }
 
-            await _recommendationRepository.AddAsync(new Recommendation(
+            var marketRow = new Recommendation(
                 storeId,
                 product.Id,
                 null,
@@ -380,7 +391,14 @@ public sealed class RecommendationGenerator
                 confidence,
                 "prophet-v1",
                 $"Network demand for this product is rising (trend slope {assessment.TrendSlope:F2} units/day) with {assessment.ExceedanceDays} of the last 7 days above the forecast upper bound across the {product.VerticalCategory} vertical. Consider stocking more to capture the opportunity.",
-                now), cancellationToken);
+                now);
+            marketRow.SetForecastSnapshot(RecommendationMapper.SerializeSnapshot(new ForecastSnapshot(
+                forecast.Dates,
+                actuals,
+                forecast.Yhat,
+                forecast.YhatLower,
+                forecast.YhatUpper)));
+            await _recommendationRepository.AddAsync(marketRow, cancellationToken);
 
             written++;
         }
@@ -401,7 +419,7 @@ public sealed class RecommendationGenerator
             storeId, productId, cancellationToken);
         _recommendationRepository.RemoveRange(existing);
 
-        await _recommendationRepository.AddAsync(new Recommendation(
+        var productRow = new Recommendation(
             storeId,
             productId,
             null,
@@ -412,11 +430,13 @@ public sealed class RecommendationGenerator
             evaluated.Decision.ConfidenceScore,
             evaluated.ModelVersion,
             evaluated.Decision.Reason,
-            now), cancellationToken);
+            now);
+        productRow.SetForecastSnapshot(evaluated.ForecastSnapshotJson);
+        await _recommendationRepository.AddAsync(productRow, cancellationToken);
 
         foreach (var (batch, batchDecision) in evaluated.BatchDecisions)
         {
-            await _recommendationRepository.AddAsync(new Recommendation(
+            var batchRow = new Recommendation(
                 storeId,
                 productId,
                 batch.Id,
@@ -427,7 +447,9 @@ public sealed class RecommendationGenerator
                 evaluated.Decision.ConfidenceScore,
                 evaluated.ModelVersion,
                 batchDecision.Reason,
-                now), cancellationToken);
+                now);
+            batchRow.SetForecastSnapshot(evaluated.ForecastSnapshotJson);
+            await _recommendationRepository.AddAsync(batchRow, cancellationToken);
         }
 
         await _recommendationRepository.SaveChangesAsync(cancellationToken);

@@ -280,6 +280,73 @@ public class RecommendationGeneratorTests
         row.Reason.Should().Contain("trend slope");
     }
 
+    [Fact]
+    public async Task RunAsync_ForecastRow_PersistsSnapshotWithAlignedArrays()
+    {
+        var clock = new FakeDateTimeProvider { UtcNow = new DateTime(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc) };
+        var today = clock.UtcNow.Date;
+        var store = GamingStore("Store A");
+        var batch = new InventoryBatch(
+            store.Id, GamingProduct.Id, 10, 5m, 10m, reorderPoint: 5, leadTimeDays: 2, expiryDate: null);
+        var metrics = SalesHistory(store.Id, GamingProduct.Id, today, 20, 5);
+        var recommendations = new FakeRecommendationRepository();
+        var client = new FakeForecastingClient((series, horizon) => FlatForecast(series.Count, horizon));
+        var generator = CreateGenerator(
+            clock,
+            new FakeStoreRepository(store),
+            new FakeDailyProductMetricRepository(metrics.ToArray()),
+            new FakeDailyMarketSignalRepository(),
+            new FakeInventoryBatchRepository(batch),
+            new FakeProductRepository(GamingProduct),
+            client,
+            recommendations);
+
+        await generator.RunAsync(CancellationToken.None);
+
+        var row = recommendations.All.Should().ContainSingle().Subject;
+        row.ForecastSnapshotJson.Should().NotBeNullOrEmpty();
+
+        var snapshot = System.Text.Json.JsonSerializer.Deserialize<global::Application.DTOs.Recommendations.ForecastSnapshot>(
+            row.ForecastSnapshotJson!,
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        snapshot.Should().NotBeNull();
+        snapshot!.Dates.Should().HaveCount(194);
+        snapshot.Yhat.Should().HaveCount(snapshot.Dates.Count);
+        snapshot.Lower.Should().HaveCount(snapshot.Dates.Count);
+        snapshot.Upper.Should().HaveCount(snapshot.Dates.Count);
+        snapshot.Actuals.Should().HaveCount(180);
+        snapshot.Actuals.TakeLast(20).Should().OnlyContain(v => v == 5);
+    }
+
+    [Fact]
+    public async Task RunAsync_FallbackRow_HasNoSnapshot()
+    {
+        var clock = new FakeDateTimeProvider { UtcNow = new DateTime(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc) };
+        var today = clock.UtcNow.Date;
+        var store = GamingStore("Store A");
+        var batch = new InventoryBatch(
+            store.Id, GamingProduct.Id, 10, 5m, 10m, reorderPoint: 5, leadTimeDays: 2, expiryDate: null);
+        var metrics = SalesHistory(store.Id, GamingProduct.Id, today, 20, 5);
+        var recommendations = new FakeRecommendationRepository();
+        var client = new FakeForecastingClient((_, _) => new ForecastResponse(
+            true, [], [], [], [], []));
+        var generator = CreateGenerator(
+            clock,
+            new FakeStoreRepository(store),
+            new FakeDailyProductMetricRepository(metrics.ToArray()),
+            new FakeDailyMarketSignalRepository(),
+            new FakeInventoryBatchRepository(batch),
+            new FakeProductRepository(GamingProduct),
+            client,
+            recommendations);
+
+        await generator.RunAsync(CancellationToken.None);
+
+        var row = recommendations.All.Should().ContainSingle().Subject;
+        row.ModelVersion.Should().Be("fallback-v1");
+        row.ForecastSnapshotJson.Should().BeNull();
+    }
+
     private static RecommendationGenerator CreateGenerator(
         FakeDateTimeProvider clock,
         FakeStoreRepository storeRepository,

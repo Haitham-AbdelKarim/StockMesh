@@ -2,6 +2,7 @@ using Api.Auth;
 using Application.Common.Models;
 using Application.DTOs.Recommendations;
 using Application.Features.Recommendations.Commands.RunRecommendations;
+using Application.Features.Recommendations.Queries.GetMarketHistory;
 using Application.Features.Recommendations.Queries.GetRecommendations;
 using Asp.Versioning;
 using Domain.Enums;
@@ -44,5 +45,15 @@ public class RecommendationsController : ControllerBase
     {
         return this.FromResult(
             await _mediator.Send(new RunRecommendationsCommand(), cancellationToken));
+    }
+
+    [HttpGet("market")]
+    public async Task<ActionResult<IReadOnlyList<MarketSignalPointResponse>>> GetMarketHistory(
+        [FromQuery] Guid productId,
+        [FromQuery] int days = 90,
+        CancellationToken cancellationToken = default)
+    {
+        return this.FromResult(
+            await _mediator.Send(new GetMarketHistoryQuery(productId, days), cancellationToken));
     }
 }
