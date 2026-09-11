@@ -29,6 +29,22 @@ public class DailyMarketSignalRepository : IDailyMarketSignalRepository
                 cancellationToken);
     }
 
+    public async Task<IReadOnlyList<DailyMarketSignal>> GetHistoryAsync(
+        Guid productId,
+        VerticalCategory verticalCategory,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.DailyMarketSignals
+            .Where(s => s.ProductId == productId
+                && s.VerticalCategory == verticalCategory
+                && s.Date >= from
+                && s.Date < to)
+            .OrderBy(s => s.Date)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(
         DailyMarketSignal signal,
         CancellationToken cancellationToken = default)

@@ -28,6 +28,23 @@ internal sealed class FakeDailyMarketSignalRepository : IDailyMarketSignalReposi
                 && s.Date == date));
     }
 
+    public Task<IReadOnlyList<DailyMarketSignal>> GetHistoryAsync(
+        Guid productId,
+        VerticalCategory verticalCategory,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<DailyMarketSignal>>(
+            _signals
+                .Where(s => s.ProductId == productId
+                    && s.VerticalCategory == verticalCategory
+                    && s.Date >= from
+                    && s.Date < to)
+                .OrderBy(s => s.Date)
+                .ToList());
+    }
+
     public Task AddAsync(
         DailyMarketSignal signal,
         CancellationToken cancellationToken = default)

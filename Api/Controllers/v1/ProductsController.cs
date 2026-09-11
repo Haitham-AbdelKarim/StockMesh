@@ -1,6 +1,8 @@
 using Application.Common.Models;
 using Application.DTOs.Products;
+using Application.DTOs.Recommendations;
 using Application.Features.Products.Queries.GetProducts;
+using Application.Features.Recommendations.Queries.GetRecommendationForProduct;
 using Asp.Versioning;
 using Domain.Enums;
 using MediatR;
@@ -33,5 +35,14 @@ public class ProductsController : ControllerBase
         var query = new GetProductsQuery(vertical, search, page, pageSize);
 
         return this.FromResult(await _mediator.Send(query, cancellationToken));
+    }
+
+    [HttpGet("{id:guid}/recommendation")]
+    public async Task<ActionResult<RecommendationResponse>> GetRecommendationForProduct(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        return this.FromResult(
+            await _mediator.Send(new GetRecommendationForProductQuery(id), cancellationToken));
     }
 }

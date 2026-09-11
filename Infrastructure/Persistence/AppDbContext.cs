@@ -34,6 +34,8 @@ public class AppDbContext : IdentityDbContext<StoreUser, IdentityRole<Guid>, Gui
 
     public DbSet<DailyMarketSignal> DailyMarketSignals => Set<DailyMarketSignal>();
 
+    public DbSet<Recommendation> Recommendations => Set<Recommendation>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

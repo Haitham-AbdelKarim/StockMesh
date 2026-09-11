@@ -5,6 +5,7 @@ using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
 using Application.Features.MarketSignals.Services;
 using Application.Features.Metrics.Services;
+using Application.Features.Recommendations.Services;
 using Application.Features.Reservations.Services;
 using Infrastructure.BackgroundJobs;
 using Infrastructure.ExternalServices;
@@ -79,14 +80,21 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IDailyMarketSignalRepository, DailyMarketSignalRepository>();
+        services.AddScoped<IRecommendationRepository, RecommendationRepository>();
         services.AddScoped<ReservationExpiryProcessor>();
         services.AddScoped<MarketSignalAggregator>();
+        services.AddScoped<RecommendationGenerator>();
         services.AddHostedService<ReservationExpirySweeper>();
         services.AddHostedService<MarketSignalSweeper>();
+        services.AddHostedService<RecommendationSweeper>();
 
         services.AddSingleton<MarketSignalOptions>(_ =>
             configuration.GetSection(MarketSignalOptions.SectionName).Get<MarketSignalOptions>()
             ?? new MarketSignalOptions());
+
+        services.AddSingleton<RecommendationOptions>(_ =>
+            configuration.GetSection(RecommendationOptions.SectionName).Get<RecommendationOptions>()
+            ?? new RecommendationOptions());
 
         return services;
     }

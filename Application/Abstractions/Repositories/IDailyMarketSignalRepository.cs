@@ -11,6 +11,13 @@ public interface IDailyMarketSignalRepository
         DateTime date,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<DailyMarketSignal>> GetHistoryAsync(
+        Guid productId,
+        VerticalCategory verticalCategory,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(
         DailyMarketSignal signal,
         CancellationToken cancellationToken = default);
