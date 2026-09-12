@@ -149,6 +149,11 @@ public class GetReservationsQueryHandlerTests
 
         if (status != ReservationStatus.Pending)
         {
+            if (status != ReservationStatus.Cancelled)
+            {
+                reservation.Resolve(ReservationStatus.Accepted);
+            }
+
             reservation.Resolve(status);
         }
 
@@ -164,6 +169,7 @@ public class GetReservationsQueryHandlerTests
             new FakeStockReservationRepository(reservations.ToArray()),
             new FakeInventoryBatchRepository(batch),
             new FakeProductRepository(Product),
-            new FakeStoreRepository(RequestingStore, OwningStore));
+            new FakeStoreRepository(RequestingStore, OwningStore),
+            new FakeReservationPaymentRepository());
     }
 }

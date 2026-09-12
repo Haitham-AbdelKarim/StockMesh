@@ -34,6 +34,7 @@ public class MarketSignalAggregatorTests
 
         var pending = new StockReservation(batchA.Id, StoreBId, StoreAId, 2, 10m);
         var resolved = new StockReservation(batchB.Id, StoreCId, StoreBId, 1, 10m);
+        resolved.Resolve(ReservationStatus.Accepted);
         resolved.Resolve(ReservationStatus.Success);
 
         var transferA = new StockMovement(

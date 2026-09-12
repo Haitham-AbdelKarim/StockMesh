@@ -1,6 +1,5 @@
 using Application.Common.Models;
 using Application.Features.Reservations.Commands.ResolveReservation;
-using Application.Features.Reservations.Notifications;
 using Domain.Entities;
 using Domain.Enums;
 using FluentAssertions;
@@ -27,11 +26,10 @@ public class ResolveReservationCommandHandlerTests
             new FakeStockReservationRepository(),
             new FakeInventoryBatchRepository(),
             new FakeAuditLogRepository(),
-            new FakeUnitOfWork(),
-            new FakeMediator());
+            new FakeUnitOfWork());
 
         var result = await handler.Handle(
-            new ResolveReservationCommand(Guid.NewGuid(), ReservationStatus.Success),
+            new ResolveReservationCommand(Guid.NewGuid(), ReservationStatus.Accepted),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
@@ -48,11 +46,10 @@ public class ResolveReservationCommandHandlerTests
             new FakeInventoryBatchRepository(batch),
             new FakeAuditLogRepository(),
             new FakeUnitOfWork(),
-            new FakeMediator(),
             currentStoreId: ThirdStoreId);
 
         var result = await handler.Handle(
-            new ResolveReservationCommand(reservation.Id, ReservationStatus.Success),
+            new ResolveReservationCommand(reservation.Id, ReservationStatus.Accepted),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
@@ -60,11 +57,10 @@ public class ResolveReservationCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_SuccessByRequestingStore_SetsSuccessAndPublishesNotification()
+    public async Task Handle_AcceptByOwningStore_SetsAcceptedWithoutTouchingPool()
     {
         var batch = CreateSharedBatch(5);
         var reservation = CreatePendingReservation(batch.Id, 2);
-        var mediator = new FakeMediator();
         var unitOfWork = new FakeUnitOfWork();
         var auditRepository = new FakeAuditLogRepository();
         var handler = CreateHandler(
@@ -72,27 +68,23 @@ public class ResolveReservationCommandHandlerTests
             new FakeInventoryBatchRepository(batch),
             auditRepository,
             unitOfWork,
-            mediator);
+            currentStoreId: OwnerStoreId);
 
         var result = await handler.Handle(
-            new ResolveReservationCommand(reservation.Id, ReservationStatus.Success),
+            new ResolveReservationCommand(reservation.Id, ReservationStatus.Accepted),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value!.Status.Should().Be(ReservationStatus.Success);
-        reservation.Status.Should().Be(ReservationStatus.Success);
+        result.Value!.Status.Should().Be(ReservationStatus.Accepted);
+        reservation.Status.Should().Be(ReservationStatus.Accepted);
         batch.SharedQuantity.Should().Be(5);
-
-        mediator.Published.Should().ContainSingle()
-            .Which.Should().BeOfType<ReservationResolvedSuccessfullyNotification>()
-            .Which.ReservationId.Should().Be(reservation.Id);
         auditRepository.Entries.Should().ContainSingle(
-            e => e.Action == "reservation.resolved.success" && e.EntityId == reservation.Id);
+            e => e.Action == "reservation.accepted" && e.EntityId == reservation.Id);
         unitOfWork.Transactions.Should().ContainSingle().Subject.Committed.Should().BeTrue();
     }
 
     [Fact]
-    public async Task Handle_SuccessByOwningStore_IsAllowed()
+    public async Task Handle_AcceptByRequestingStore_ReturnsForbidden()
     {
         var batch = CreateSharedBatch(5);
         var reservation = CreatePendingReservation(batch.Id, 2);
@@ -101,30 +93,49 @@ public class ResolveReservationCommandHandlerTests
             new FakeInventoryBatchRepository(batch),
             new FakeAuditLogRepository(),
             new FakeUnitOfWork(),
-            new FakeMediator(),
+            currentStoreId: RequesterStoreId);
+
+        var result = await handler.Handle(
+            new ResolveReservationCommand(reservation.Id, ReservationStatus.Accepted),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Kind.Should().Be(FailureKind.Forbidden);
+        reservation.Status.Should().Be(ReservationStatus.Pending);
+    }
+
+    [Fact]
+    public async Task Handle_SuccessDirectly_ReturnsBadRequest()
+    {
+        var batch = CreateSharedBatch(5);
+        var reservation = CreatePendingReservation(batch.Id, 2);
+        var handler = CreateHandler(
+            new FakeStockReservationRepository(reservation),
+            new FakeInventoryBatchRepository(batch),
+            new FakeAuditLogRepository(),
+            new FakeUnitOfWork(),
             currentStoreId: OwnerStoreId);
 
         var result = await handler.Handle(
             new ResolveReservationCommand(reservation.Id, ReservationStatus.Success),
             CancellationToken.None);
 
-        result.IsSuccess.Should().BeTrue();
-        reservation.Status.Should().Be(ReservationStatus.Success);
+        result.IsSuccess.Should().BeFalse();
+        result.Kind.Should().Be(FailureKind.BadRequest);
+        reservation.Status.Should().Be(ReservationStatus.Pending);
     }
 
     [Fact]
-    public async Task Handle_Cancelled_ReturnsQuantityToSharedPool()
+    public async Task Handle_CancelledFromPending_ReturnsQuantityToSharedPool()
     {
         var batch = CreateSharedBatch(5);
         var reservation = CreatePendingReservation(batch.Id, 2);
-        var mediator = new FakeMediator();
         var auditRepository = new FakeAuditLogRepository();
         var handler = CreateHandler(
             new FakeStockReservationRepository(reservation),
             new FakeInventoryBatchRepository(batch),
             auditRepository,
-            new FakeUnitOfWork(),
-            mediator);
+            new FakeUnitOfWork());
 
         var result = await handler.Handle(
             new ResolveReservationCommand(reservation.Id, ReservationStatus.Cancelled),
@@ -133,9 +144,30 @@ public class ResolveReservationCommandHandlerTests
         result.IsSuccess.Should().BeTrue();
         result.Value!.Status.Should().Be(ReservationStatus.Cancelled);
         batch.SharedQuantity.Should().Be(7);
-        mediator.Published.Should().BeEmpty();
         auditRepository.Entries.Should().ContainSingle(
             e => e.Action == "reservation.resolved.cancelled" && e.EntityId == reservation.Id);
+    }
+
+    [Fact]
+    public async Task Handle_CancelledFromAccepted_ReturnsQuantityToSharedPool()
+    {
+        var batch = CreateSharedBatch(5);
+        var reservation = CreatePendingReservation(batch.Id, 2);
+        reservation.Resolve(ReservationStatus.Accepted);
+        var handler = CreateHandler(
+            new FakeStockReservationRepository(reservation),
+            new FakeInventoryBatchRepository(batch),
+            new FakeAuditLogRepository(),
+            new FakeUnitOfWork(),
+            currentStoreId: OwnerStoreId);
+
+        var result = await handler.Handle(
+            new ResolveReservationCommand(reservation.Id, ReservationStatus.Cancelled),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Status.Should().Be(ReservationStatus.Cancelled);
+        batch.SharedQuantity.Should().Be(7);
     }
 
     [Fact]
@@ -148,20 +180,27 @@ public class ResolveReservationCommandHandlerTests
             new FakeInventoryBatchRepository(batch),
             new FakeAuditLogRepository(),
             new FakeUnitOfWork(),
-            new FakeMediator());
+            currentStoreId: OwnerStoreId);
 
         await handler.Handle(
-            new ResolveReservationCommand(reservation.Id, ReservationStatus.Success),
+            new ResolveReservationCommand(reservation.Id, ReservationStatus.Accepted),
             CancellationToken.None);
 
         var result = await handler.Handle(
             new ResolveReservationCommand(reservation.Id, ReservationStatus.Cancelled),
             CancellationToken.None);
 
-        result.IsSuccess.Should().BeFalse();
-        result.Kind.Should().Be(FailureKind.Conflict);
-        batch.SharedQuantity.Should().Be(5);
-        reservation.Status.Should().Be(ReservationStatus.Success);
+        // Accepted -> Cancelled is legal, so resolve once more to prove terminality.
+        result.IsSuccess.Should().BeTrue();
+
+        var terminal = await handler.Handle(
+            new ResolveReservationCommand(reservation.Id, ReservationStatus.Accepted),
+            CancellationToken.None);
+
+        terminal.IsSuccess.Should().BeFalse();
+        terminal.Kind.Should().Be(FailureKind.Conflict);
+        batch.SharedQuantity.Should().Be(7);
+        reservation.Status.Should().Be(ReservationStatus.Cancelled);
     }
 
     private static InventoryBatch CreateSharedBatch(int sharedQuantity)
@@ -188,7 +227,6 @@ public class ResolveReservationCommandHandlerTests
         FakeInventoryBatchRepository batchRepository,
         FakeAuditLogRepository auditRepository,
         FakeUnitOfWork unitOfWork,
-        FakeMediator mediator,
         Guid? currentStoreId = null)
     {
         return new ResolveReservationCommandHandler(
@@ -196,9 +234,9 @@ public class ResolveReservationCommandHandlerTests
             Clock,
             reservationRepository,
             batchRepository,
+            new FakeReservationPaymentRepository(),
             auditRepository,
             unitOfWork,
-            mediator,
             NullLogger<ResolveReservationCommandHandler>.Instance);
     }
 }

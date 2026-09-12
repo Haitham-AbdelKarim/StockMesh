@@ -14,19 +14,22 @@ public sealed class GetReservationsQueryHandler :
     private readonly IInventoryBatchRepository _inventoryBatchRepository;
     private readonly IProductRepository _productRepository;
     private readonly IStoreRepository _storeRepository;
+    private readonly IReservationPaymentRepository _paymentRepository;
 
     public GetReservationsQueryHandler(
         ICurrentUser currentUser,
         IStockReservationRepository stockReservationRepository,
         IInventoryBatchRepository inventoryBatchRepository,
         IProductRepository productRepository,
-        IStoreRepository storeRepository)
+        IStoreRepository storeRepository,
+        IReservationPaymentRepository paymentRepository)
     {
         _currentUser = currentUser;
         _stockReservationRepository = stockReservationRepository;
         _inventoryBatchRepository = inventoryBatchRepository;
         _productRepository = productRepository;
         _storeRepository = storeRepository;
+        _paymentRepository = paymentRepository;
     }
 
     public async Task<Result<PaginatedList<ReservationDetailResponse>>> Handle(
@@ -47,6 +50,10 @@ public sealed class GetReservationsQueryHandler :
 
         var storeNames = await GetStoreNamesAsync(items, cancellationToken);
 
+        var payments = await _paymentRepository.GetByReservationIdsAsync(
+            items.Select(r => r.Id).Distinct().ToList(),
+            cancellationToken);
+
         var responseItems = items
             .Select(r => new ReservationDetailResponse(
                 r.Id,
@@ -63,7 +70,10 @@ public sealed class GetReservationsQueryHandler :
                 r.DeliveryEta,
                 r.Status,
                 r.HoldExpiresAt,
-                r.ResolvedAt == default ? null : r.ResolvedAt))
+                r.ResolvedAt == default ? null : r.ResolvedAt,
+                payments.TryGetValue(r.Id, out var payment)
+                    ? ReservationMapper.ToPaymentState(payment.Status)
+                    : ReservationPaymentState.Unpaid))
             .ToList();
 
         var paginated = PaginatedList<ReservationDetailResponse>.Create(

@@ -1,5 +1,7 @@
 using Application.Common.Models;
+using Application.DTOs.Payments;
 using Application.DTOs.Reservations;
+using Application.Features.Reservations.Commands.CreateCheckoutSession;
 using Application.Features.Reservations.Commands.ReserveStock;
 using Application.Features.Reservations.Commands.ResolveReservation;
 using Application.Features.Reservations.Queries.GetReservations;
@@ -49,5 +51,15 @@ public class ReservationsController : ControllerBase
     {
         return this.FromResult(
             await _mediator.Send(command with { ReservationId = reservationId }, cancellationToken));
+    }
+
+    [HttpPost("{reservationId:guid}/checkout")]
+    public async Task<ActionResult<CheckoutSessionResponse>> CreateCheckout(
+        Guid reservationId,
+        CancellationToken cancellationToken)
+    {
+        return this.FromResult(
+            await _mediator.Send(new CreateCheckoutSessionCommand(reservationId), cancellationToken),
+            StatusCodes.Status201Created);
     }
 }

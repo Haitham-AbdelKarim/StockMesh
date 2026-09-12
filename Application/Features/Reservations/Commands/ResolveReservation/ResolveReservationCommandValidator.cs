@@ -12,7 +12,7 @@ public sealed class ResolveReservationCommandValidator : AbstractValidator<Resol
             .WithMessage("Reservation is required.");
 
         RuleFor(x => x.Outcome)
-            .Must(o => o == ReservationStatus.Success || o == ReservationStatus.Cancelled)
-            .WithMessage("Resolution outcome must be either Success or Cancelled.");
+            .Must(o => o == ReservationStatus.Accepted || o == ReservationStatus.Cancelled)
+            .WithMessage("Resolution outcome must be either Accepted or Cancelled.");
     }
 }

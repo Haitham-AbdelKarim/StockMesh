@@ -185,6 +185,7 @@ public class ReservationResolvedSuccessfullyNotificationHandlerTests
             10m,
             holdExpiresAt: Clock.UtcNow.AddMinutes(15));
 
+        reservation.Resolve(ReservationStatus.Accepted);
         reservation.Resolve(ReservationStatus.Success);
 
         return reservation;

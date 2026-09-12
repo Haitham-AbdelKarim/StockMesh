@@ -86,6 +86,11 @@ public class GetNetworkSummaryQueryHandlerTests
             return reservation;
         }
 
+        if (status != ReservationStatus.Cancelled)
+        {
+            reservation.Resolve(ReservationStatus.Accepted);
+        }
+
         reservation.Resolve(status);
 
         return reservation;

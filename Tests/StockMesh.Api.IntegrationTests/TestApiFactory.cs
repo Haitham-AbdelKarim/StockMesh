@@ -24,5 +24,12 @@ public class TestApiFactory : WebApplicationFactory<Program>
         // fails to build. Values are dummies: smoke tests never call this client.
         builder.UseSetting("Forecasting:BaseUrl", "http://localhost:8000");
         builder.UseSetting("Forecasting:TimeoutSeconds", "30");
+        builder.UseSetting("Stripe:SecretKey", "sk_test_dummy");
+        builder.UseSetting("Stripe:WebhookSecret", "whsec_dummy");
+        builder.UseSetting("Stripe:Currency", "usd");
+        builder.UseSetting("Stripe:SuccessUrl", "http://localhost:4200/reservations?payment=success");
+        builder.UseSetting("Stripe:CancelUrl", "http://localhost:4200/reservations?payment=cancelled");
+        builder.UseSetting("Stripe:ConnectRefreshUrl", "http://localhost:4200/settings?connect=refresh");
+        builder.UseSetting("Stripe:ConnectReturnUrl", "http://localhost:4200/settings?connect=done");
     }
 }

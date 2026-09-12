@@ -36,6 +36,10 @@ public class AppDbContext : IdentityDbContext<StoreUser, IdentityRole<Guid>, Gui
 
     public DbSet<Recommendation> Recommendations => Set<Recommendation>();
 
+    public DbSet<ReservationPayment> ReservationPayments => Set<ReservationPayment>();
+
+    public DbSet<ProcessedStripeEvent> ProcessedStripeEvents => Set<ProcessedStripeEvent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

@@ -11,6 +11,7 @@ using Infrastructure.BackgroundJobs;
 using Infrastructure.ExternalServices;
 using Infrastructure.Identity;
 using Infrastructure.Locking;
+using Infrastructure.Payments;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
@@ -79,8 +80,17 @@ public static class DependencyInjection
         });
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
-        services.AddScoped<IDailyMarketSignalRepository, DailyMarketSignalRepository>();
+
+        var stripeSettings = configuration.GetSection(StripeSettings.SectionName).Get<StripeSettings>()
+            ?? throw new InvalidOperationException(
+                "Missing 'Stripe' configuration section. Provide Stripe test-mode keys (see appsettings.json).");
+        stripeSettings.Validate();
+        services.AddSingleton(stripeSettings);
+        services.AddScoped<IPaymentService, StripePaymentService>();
+        services.AddScoped<IStripeWebhookVerifier, StripeWebhookVerifier>(); services.AddScoped<IDailyMarketSignalRepository, DailyMarketSignalRepository>();
         services.AddScoped<IRecommendationRepository, RecommendationRepository>();
+        services.AddScoped<IReservationPaymentRepository, ReservationPaymentRepository>();
+        services.AddScoped<IProcessedStripeEventRepository, ProcessedStripeEventRepository>();
         services.AddScoped<ReservationExpiryProcessor>();
         services.AddScoped<MarketSignalAggregator>();
         services.AddScoped<RecommendationGenerator>();
