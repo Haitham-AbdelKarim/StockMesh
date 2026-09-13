@@ -25,7 +25,7 @@ load_dotenv()
 app = FastAPI(title="StockMesh Agent Service")
 
 MAX_TOOL_CALLS = int(os.environ.get("MAX_TOOL_CALLS", "5"))
-MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
 
 
 class HistoryTurn(BaseModel):
