@@ -1,0 +1,141 @@
+<div class="page-shell">
+  <app-page-header title="Inventory" subtitle="Your batches, stock levels, and network sharing"></app-page-header>
+
+  <mat-card class="panel">
+    <mat-tab-group animationDuration="200ms">
+      <mat-tab label="Batches">
+        @if (loading()) {
+          <div class="flex items-center justify-center py-16">
+            <mat-spinner diameter="36" />
+          </div>
+        } @else if (error()) {
+          <app-empty-state icon="error_outline" title="Could not load inventory" [message]="error()" />
+        } @else if (!batches().length) {
+          <app-empty-state
+            icon="warehouse"
+            title="No batches yet"
+            message="Stock enters through Record restock in Operations or a network transfer-in."
+          />
+        } @else {
+          <div class="overflow-x-auto scroll-panel">
+            <table class="data-table w-full text-sm">
+              <thead>
+                <tr class="border-b text-left">
+                  <th class="py-3 pr-4 text-xs font-medium uppercase tracking-wide text-on-surface-variant">Product</th>
+                  <th class="py-3 pr-4 text-right text-xs font-medium uppercase tracking-wide text-on-surface-variant">Stock</th>
+                  <th class="py-3 pr-4 text-right text-xs font-medium uppercase tracking-wide text-on-surface-variant">Unit cost</th>
+                  <th class="py-3 pr-4 text-right text-xs font-medium uppercase tracking-wide text-on-surface-variant">Sale price</th>
+                  <th class="py-3 pr-4 text-xs font-medium uppercase tracking-wide text-on-surface-variant">Expiry</th>
+                  <th class="py-3 pr-4 text-xs font-medium uppercase tracking-wide text-on-surface-variant">Sharing</th>
+                  <th class="py-3 text-right text-xs font-medium uppercase tracking-wide text-on-surface-variant">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (batch of batches(); track batch.id) {
+                  <tr class="border-b border-outline-variant last:border-0 hover:bg-surface-container-low">
+                    <td class="py-3 pr-4">
+                      <div class="font-medium">{{ batch.productName }}</div>
+                      <div class="text-xs text-on-surface-variant">
+                        reorder at {{ batch.reorderPoint }} · {{ batch.leadTimeDays }}d lead
+                      </div>
+                      @if (adviceFor(batch.id); as advice) {
+                        <span
+                          class="advice-pill"
+                          [class]="actionClass(advice.recommendedAction)"
+                          [matTooltip]="advice.reason"
+                        >
+                          {{ advice.recommendedAction === 'UrgentShare' ? 'Urgent share' : 'Share' }}
+                        </span>
+                      }
+                    </td>
+                    <td class="py-3 pr-4 text-right">
+                      @if (batch.isShared) {
+                        <div class="flex justify-end gap-1.5">
+                          <span class="stock-tag stock-tag-local">{{ batch.quantityRemaining }} local</span>
+                          <span class="stock-tag stock-tag-shared">{{ batch.sharedQuantity }} network</span>
+                        </div>
+                      } @else {
+                        {{ batch.quantityRemaining }}
+                      }
+                    </td>
+                    <td class="py-3 pr-4 text-right">{{ formatCurrency(batch.unitCost) }}</td>
+                    <td class="py-3 pr-4 text-right">{{ formatCurrency(batch.unitSalePrice) }}</td>
+                    <td class="py-3 pr-4">{{ formatDate(batch.expiryDate) }}</td>
+                    <td class="py-3 pr-4">
+                      @if (batch.isShared) {
+                        <span class="share-badge">On network</span>
+                      } @else {
+                        <span class="share-badge share-off">Local only</span>
+                      }
+                    </td>
+                    <td class="py-3 text-right">
+                      <div class="flex justify-end gap-1">
+                        @if (batch.isShared) {
+                          <button mat-icon-button [matTooltip]="'Manage sharing'" (click)="openShareBatch(batch)">
+                            <mat-icon class="text-tertiary">tune</mat-icon>
+                          </button>
+                          <button mat-icon-button [matTooltip]="'Stop sharing'" (click)="confirmUnshareBatch(batch)">
+                            <mat-icon>link_off</mat-icon>
+                          </button>
+                        } @else {
+                          <button mat-icon-button [matTooltip]="'Share to network'" (click)="openShareBatch(batch)">
+                            <mat-icon class="text-tertiary">share</mat-icon>
+                          </button>
+                        }
+                        <button mat-icon-button [matTooltip]="'Edit batch'" (click)="openEditBatch(batch)">
+                          <mat-icon>edit</mat-icon>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (total() > pageSize()) {
+            <mat-paginator
+              class="border-t"
+              [length]="total()"
+              [pageSize]="pageSize()"
+              [pageSizeOptions]="[10, 20, 50]"
+              [pageIndex]="page() - 1"
+              (page)="onPage($event)"
+            />
+          }
+        }
+      </mat-tab>
+
+      <mat-tab label="Stock summary">
+        @if (stock().length) {
+          <div class="overflow-x-auto scroll-panel">
+            <table class="data-table w-full text-sm">
+              <thead>
+                <tr class="border-b text-left">
+                  <th class="py-3 pr-4 text-xs font-medium uppercase tracking-wide text-on-surface-variant">Product</th>
+                  <th class="py-3 pr-4 text-right text-xs font-medium uppercase tracking-wide text-on-surface-variant">Local</th>
+                  <th class="py-3 pr-4 text-right text-xs font-medium uppercase tracking-wide text-on-surface-variant">Shared</th>
+                  <th class="py-3 pr-4 text-right text-xs font-medium uppercase tracking-wide text-on-surface-variant">Total</th>
+                  <th class="py-3 text-right text-xs font-medium uppercase tracking-wide text-on-surface-variant">Batches</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of stock(); track item.productId) {
+                  <tr class="border-b border-outline-variant last:border-0 hover:bg-surface-container-low">
+                    <td class="py-3 pr-4 font-medium">{{ item.productName }}</td>
+                    <td class="py-3 pr-4 text-right">{{ item.totalQuantityRemaining }}</td>
+                    <td class="py-3 pr-4 text-right">{{ item.totalSharedQuantity }}</td>
+                    <td class="py-3 pr-4 text-right font-medium">{{ item.totalQuantityRemaining + item.totalSharedQuantity }}</td>
+                    <td class="py-3 text-right">{{ item.batchCount }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <app-empty-state icon="stacked_bar_chart" title="No stock to summarize" message="Add inventory batches first." />
+        }
+      </mat-tab>
+    </mat-tab-group>
+  </mat-card>
+</div>

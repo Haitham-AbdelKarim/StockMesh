@@ -1,0 +1,59 @@
+<mat-sidenav-container class="shell-container" autosize>
+  <mat-sidenav #drawer mode="side" opened class="shell-sidenav">
+    <div class="brand">
+      <span class="brand-mark">M</span>
+      <span class="brand-name">StockMesh</span>
+    </div>
+
+    <mat-nav-list class="nav-list">
+      @for (item of navItems(); track item.route) {
+        <a
+          mat-list-item
+          [routerLink]="item.route"
+          routerLinkActive="active-link"
+          ariaCurrentWhenActive="page"
+          class="nav-item"
+        >
+          <mat-icon matListItemIcon [fontSet]="'material-symbols-rounded'">{{ item.icon }}</mat-icon>
+          <span matListItemTitle>{{ item.label }}</span>
+        </a>
+      }
+    </mat-nav-list>
+
+    <div class="sidenav-footer">
+      <span class="text-xs text-on-surface-variant">StockMesh · v1</span>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell-content">
+    <mat-toolbar class="topbar">
+      <button mat-icon-button (click)="drawer.toggle()" class="md:!hidden" aria-label="Toggle menu">
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <mat-icon class="topbar-chip-icon" [fontSet]="'material-symbols-rounded'">storefront</mat-icon>
+      <span class="topbar-store">{{ storeName() }}</span>
+      <span class="topbar-vertical">{{ verticalCategory() }}</span>
+
+      <span class="toolbar-spacer"></span>
+
+      <button [matMenuTriggerFor]="userMenu" class="user-chip" aria-label="Account menu">
+        <mat-icon class="user-chip-icon">account_circle</mat-icon>
+        <span class="user-chip-name">{{ email() }}</span>
+        <span class="user-chip-role">{{ role() }}</span>
+        <mat-icon class="user-chip-caret">expand_more</mat-icon>
+      </button>
+
+      <mat-menu #userMenu="matMenu" xPosition="before">
+        <button mat-menu-item (click)="onLogout()">
+          <mat-icon>logout</mat-icon>
+          <span>Sign out</span>
+        </button>
+      </mat-menu>
+    </mat-toolbar>
+
+    <main class="main-content">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

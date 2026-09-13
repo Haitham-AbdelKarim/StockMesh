@@ -1,0 +1,100 @@
+.shell-container {
+  height: 100vh;
+}
+
+.shell-sidenav {
+  @apply w-60 border-r;
+  background-color: var(--mat-sys-surface-container-low);
+  display: flex;
+  flex-direction: column;
+}
+
+.brand {
+  @apply flex items-center gap-3 px-5 py-5;
+}
+
+.brand-mark {
+  @apply flex h-9 w-9 items-center justify-center rounded-xl text-lg font-bold text-white;
+  background: linear-gradient(135deg, var(--mat-sys-primary), var(--mat-sys-tertiary));
+}
+
+.brand-name {
+  @apply text-lg font-semibold;
+  color: var(--mat-sys-on-surface);
+}
+
+.nav-list {
+  @apply flex-1 px-3 py-2;
+}
+
+.nav-item {
+  @apply mb-0.5 rounded-xl;
+  transition: background-color 0.15s ease;
+}
+
+.nav-item.active-link {
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.nav-item.active-link mat-icon {
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.sidenav-footer {
+  @apply px-5 py-4;
+}
+
+.shell-content {
+  @apply flex flex-col;
+  height: 100vh;
+}
+
+.topbar {
+  @apply sticky top-0 z-10 gap-3 border-b;
+  background-color: var(--mat-sys-surface);
+}
+
+.topbar-store {
+  @apply text-sm font-medium;
+}
+
+.topbar-vertical {
+  @apply rounded-full px-2.5 py-0.5 text-xs uppercase tracking-wide;
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.topbar-chip-icon {
+  color: var(--mat-sys-primary);
+}
+
+.user-chip {
+  @apply flex items-center gap-2 rounded-full py-1 pl-2 pr-3;
+  background-color: var(--mat-sys-surface-container-high);
+  border: 1px solid var(--mat-sys-outline-variant);
+  cursor: pointer;
+}
+
+.user-chip-icon {
+  color: var(--mat-sys-primary);
+}
+
+.user-chip-name {
+  @apply max-w-[180px] truncate text-sm font-medium;
+}
+
+.user-chip-role {
+  @apply text-xs uppercase tracking-wide;
+  color: var(--mat-sys-primary);
+}
+
+.user-chip-caret {
+  @apply text-lg;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.main-content {
+  @apply flex-1 overflow-auto;
+  background-color: var(--mat-sys-surface);
+}

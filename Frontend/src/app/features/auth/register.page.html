@@ -1,0 +1,104 @@
+<div class="auth-page">
+  <mat-card class="auth-card auth-card-wide">
+    <div class="auth-brand">
+      <span class="auth-brand-mark">M</span>
+      <span class="auth-brand-name">StockMesh</span>
+    </div>
+    <p class="auth-tagline">Register your store to start trading</p>
+
+    @if (serverError()) {
+      <div class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {{ serverError() }}
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+      <mat-form-field appearance="outline">
+        <mat-label>Store name</mat-label>
+        <input matInput formControlName="storeName" autocomplete="organization" />
+        <mat-icon matPrefix>storefront</mat-icon>
+        <mat-error>Store name is required (2–150 characters)</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Vertical category</mat-label>
+        <mat-select formControlName="verticalCategory">
+          @for (category of verticalCategories; track category) {
+            <mat-option [value]="category">{{ category }}</mat-option>
+          }
+        </mat-select>
+        <mat-icon matPrefix>category</mat-icon>
+        <mat-error>Pick a category</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="email" />
+        <mat-icon matPrefix>mail</mat-icon>
+        <mat-error>Enter a valid email</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Password</mat-label>
+        <input matInput type="password" formControlName="password" autocomplete="new-password" />
+        <mat-icon matPrefix>lock</mat-icon>
+        <mat-error>At least 8 characters</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Search radius (km)</mat-label>
+        <input matInput type="number" step="any" formControlName="maxSearchRadiusKm" />
+        <mat-icon matPrefix>radar</mat-icon>
+        <mat-error>1–500</mat-error>
+      </mat-form-field>
+
+      <div class="location-block">
+        <div class="location-header">
+          <span class="location-title">Store location</span>
+          <button type="button" mat-button color="primary" (click)="useMyLocation()">
+            <mat-icon>my_location</mat-icon>
+            Use my location
+          </button>
+        </div>
+
+        <div
+          id="store-map"
+          class="store-map"
+          (window:resize)="onMapReady()"
+          tabindex="0"
+          aria-label="Pick your store location on the map"
+        ></div>
+
+        @if (location(); as loc) {
+          <div class="location-selected">
+            <mat-icon class="location-check-icon">check_circle</mat-icon>
+            <span class="location-coords">
+              {{ loc.lat.toFixed(5) }}, {{ loc.lng.toFixed(5) }}
+            </span>
+            <button type="button" mat-icon-button class="location-clear" (click)="clearLocation()" aria-label="Clear location">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <p class="location-hint">Tap the map to move the pin if needed.</p>
+        } @else {
+          <p class="location-hint location-required">
+            Click anywhere on the map (or use your location) to set where your store operates — this is required.
+          </p>
+        }
+      </div>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="submitting()" class="auth-submit">
+        @if (submitting()) {
+          <mat-spinner diameter="18" />
+        } @else {
+          Create store
+        }
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <span>Already registered?</span>
+      <a routerLink="/auth/login">Sign in</a>
+    </div>
+  </mat-card>
+</div>

@@ -1,0 +1,7 @@
+<div class="empty-state">
+  <mat-icon class="empty-icon" [fontSet]="'material-symbols-rounded'">{{ icon() }}</mat-icon>
+  <p class="empty-title">{{ title() }}</p>
+  @if (message()) {
+    <p class="empty-message">{{ message() }}</p>
+  }
+</div>

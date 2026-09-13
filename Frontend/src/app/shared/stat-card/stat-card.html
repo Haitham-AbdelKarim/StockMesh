@@ -1,0 +1,14 @@
+<mat-card class="stat-card">
+  <mat-card-content>
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <span class="stat-label">{{ label() }}</span>
+        <div class="stat-value">{{ value() }}</div>
+        @if (hint()) {
+          <span class="stat-hint">{{ hint() }}</span>
+        }
+      </div>
+      <mat-icon class="stat-icon" [fontSet]="'material-symbols-rounded'">{{ icon() }}</mat-icon>
+    </div>
+  </mat-card-content>
+</mat-card>

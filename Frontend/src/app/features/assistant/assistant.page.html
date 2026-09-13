@@ -1,0 +1,99 @@
+<div class="page-shell">
+  <app-page-header title="Assistant" subtitle="Ask grounded questions about your store's data" />
+
+  <div class="assistant-grid">
+    <mat-card class="panel threads">
+      <div class="threads-head">
+        <span class="threads-title">Conversations</span>
+        <button mat-stroked-button (click)="newChat()">
+          <mat-icon>add</mat-icon>
+          New chat
+        </button>
+      </div>
+
+      @if (loadingThreads()) {
+        <div class="flex items-center justify-center py-8">
+          <mat-spinner diameter="28" />
+        </div>
+      } @else if (!threads().length) {
+        <p class="hint">No conversations yet — ask your first question.</p>
+      } @else {
+        <div class="thread-list">
+          @for (thread of threads(); track thread.id) {
+            <button
+              class="thread-item"
+              [class.active]="thread.id === activeId()"
+              (click)="openThread(thread.id)"
+            >
+              <span class="thread-title">{{ thread.title }}</span>
+            </button>
+          }
+        </div>
+      }
+    </mat-card>
+
+    <mat-card class="panel chat">
+      @if (!turns().length && !asking()) {
+        <app-empty-state
+          icon="forum"
+          title="Ask about your business"
+          message="Try “What are my top sellers this month?” or “How can I increase my profit?”"
+        />
+      } @else {
+        <div class="turn-list">
+          @for (turn of turns(); track $index) {
+            <div class="turn">
+              <div class="bubble question">{{ turn.question }}</div>
+              <div class="bubble answer">
+                @if (turn.error && !turn.answer) {
+                  <span class="hint">The assistant could not answer. Try again.</span>
+                } @else {
+                  {{ turn.answer }}
+                  @if (turn.pending) {
+                    <span class="caret">▍</span>
+                  }
+                }
+              </div>
+              @if (turn.trace.length) {
+                <details class="trace">
+                  <summary>Tools used ({{ turn.trace.length }})</summary>
+                  <ul>
+                    @for (call of turn.trace; track $index) {
+                      <li>
+                        <code>{{ call.name }}</code>
+                      </li>
+                    }
+                  </ul>
+                </details>
+              }
+            </div>
+          }
+          @if (status()) {
+            <div class="status-line">
+              <mat-spinner diameter="16" />
+              <span>{{ status() }}</span>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="composer">
+        <mat-form-field appearance="outline" class="composer-field">
+          <mat-label>Ask a question</mat-label>
+          <input
+            matInput
+            [ngModel]="question()"
+            (ngModelChange)="question.set($event)"
+            (keyup.enter)="ask()"
+            maxlength="1000"
+            placeholder="What are my top sellers this month?"
+          />
+        </mat-form-field>
+        <button mat-flat-button color="primary" [disabled]="asking() || !question().trim()" (click)="ask()">
+          <mat-icon>send</mat-icon>
+          Ask
+        </button>
+      </div>
+    </mat-card>
+  </div>
+</div>
