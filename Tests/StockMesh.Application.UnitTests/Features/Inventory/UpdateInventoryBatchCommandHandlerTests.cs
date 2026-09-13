@@ -75,11 +75,12 @@ public class UpdateInventoryBatchCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OnSuccess_PersistsChanges()
+    public async Task Handle_OnSuccess_PersistsChangesAndWritesAudit()
     {
         var batch = new InventoryBatch(StoreId, Product.Id, 10, 5m, 10m);
         var repository = new FakeInventoryBatchRepository(batch);
-        var handler = CreateHandler(repository);
+        var auditLog = new FakeAuditLogRepository();
+        var handler = CreateHandler(repository, auditLog);
 
         var result = await handler.Handle(
             new UpdateInventoryBatchCommand(batch.Id, LeadTimeDays: 4),
@@ -88,14 +89,22 @@ public class UpdateInventoryBatchCommandHandlerTests
         result.IsSuccess.Should().BeTrue();
         var persisted = await repository.GetByIdAsync(batch.Id);
         persisted!.LeadTimeDays.Should().Be(4);
+
+        auditLog.Entries.Should().ContainSingle().Which.Should().Match<AuditLog>(a =>
+            a.EntityType == nameof(InventoryBatch)
+            && a.EntityId == batch.Id
+            && a.Action == "batch.updated"
+            && a.ActorStoreId == StoreId);
     }
 
     private static UpdateInventoryBatchCommandHandler CreateHandler(
-        FakeInventoryBatchRepository inventoryBatchRepository)
+        FakeInventoryBatchRepository inventoryBatchRepository,
+        FakeAuditLogRepository? auditLogRepository = null)
     {
         return new UpdateInventoryBatchCommandHandler(
             new FakeCurrentUser { StoreId = StoreId },
             inventoryBatchRepository,
-            new FakeProductRepository(Product));
+            new FakeProductRepository(Product),
+            auditLogRepository ?? new FakeAuditLogRepository());
     }
 }

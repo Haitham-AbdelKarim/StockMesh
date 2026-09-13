@@ -1,0 +1,105 @@
+<div class="page-shell">
+  <app-page-header title="Network" subtitle="Shared stock from partner stores in your vertical — reserve what you need">
+    <form (ngSubmit)="onFilter()" class="flex flex-wrap items-center gap-3" actions>
+      <mat-form-field appearance="outline" class="w-48">
+        <mat-label>Category</mat-label>
+        <mat-select [(ngModel)]="category" name="category" (selectionChange)="onFilter()">
+          <mat-option value="">All categories</mat-option>
+          @for (category of verticalCategories; track category) {
+            <mat-option [value]="category">{{ category }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-44">
+        <mat-label>Max distance (km)</mat-label>
+        <input matInput type="number" min="0" [(ngModel)]="maxDistance" name="maxDistance" placeholder="e.g. 50" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-52">
+        <mat-label>Search</mat-label>
+        <input matInput [(ngModel)]="search" name="search" placeholder="Product or store…" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <button mat-stroked-button type="submit">
+        <mat-icon>filter_alt</mat-icon>
+        Apply
+      </button>
+    </form>
+  </app-page-header>
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-16">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (error()) {
+    <mat-card class="panel">
+      <app-empty-state icon="error_outline" title="Could not load the network" [message]="error()" />
+    </mat-card>
+  } @else if (!listings().length) {
+    <mat-card class="panel">
+      <app-empty-state
+        icon="hub"
+        title="No shared stock nearby"
+        message="Share some of your own batches in Inventory to be visible here, or widen your search."
+      />
+    </mat-card>
+  } @else {
+    <div class="listing-grid">
+      @for (listing of listings(); track listing.batchId) {
+        <mat-card class="listing-card">
+          <mat-card-content class="listing-body">
+            <div class="listing-top">
+              <span class="distance-chip">
+                <mat-icon class="text-sm">near_me</mat-icon>
+                {{ listing.distanceKm.toFixed(1) }} km
+              </span>
+            </div>
+
+            <h3 class="listing-name">{{ listing.productName }}</h3>
+            <p class="listing-store">
+              <mat-icon class="text-base">storefront</mat-icon>
+              {{ listing.storeName }}
+            </p>
+
+            <div class="listing-meta">
+              <div class="meta-col">
+                <span class="meta-label">Available</span>
+                <span class="meta-value">{{ listing.sharedQuantity }} units</span>
+              </div>
+              <div class="meta-col">
+                <span class="meta-label">Price</span>
+                <span class="meta-value">{{ formatCurrency(listing.unitSalePrice) }}</span>
+              </div>
+              <div class="meta-col">
+                <span class="meta-label">Expiry</span>
+                <span class="meta-value">{{ formatDate(listing.expiryDate) }}</span>
+              </div>
+            </div>
+          </mat-card-content>
+
+          <mat-card-actions class="listing-actions">
+            <button mat-flat-button color="primary" class="w-full" (click)="openReserve(listing)">
+              <mat-icon>swap_horiz</mat-icon>
+              Reserve stock
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      }
+    </div>
+
+    @if (total() > pageSize()) {
+      <div class="mt-6 flex justify-center">
+        <mat-paginator
+          class="rounded-full border border-outline-variant"
+          [length]="total()"
+          [pageSize]="pageSize()"
+          [pageSizeOptions]="[12, 24, 48]"
+          [pageIndex]="page() - 1"
+          (page)="onPage($event)"
+        />
+      </div>
+    }
+  }
+</div>

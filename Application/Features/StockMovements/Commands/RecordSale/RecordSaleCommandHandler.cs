@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Application.Abstractions.Persistence;
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
@@ -19,6 +20,8 @@ public sealed class RecordSaleCommandHandler :
     private readonly IDateTimeProvider _clock;
     private readonly IInventoryBatchRepository _inventoryBatchRepository;
     private readonly IStockMovementRepository _stockMovementRepository;
+    private readonly IAuditLogRepository _auditLogRepository;
+    private readonly IDailyMetricsMaterializer _dailyMetricsMaterializer;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<RecordSaleCommandHandler> _logger;
 
@@ -27,6 +30,8 @@ public sealed class RecordSaleCommandHandler :
         IDateTimeProvider clock,
         IInventoryBatchRepository inventoryBatchRepository,
         IStockMovementRepository stockMovementRepository,
+        IAuditLogRepository auditLogRepository,
+        IDailyMetricsMaterializer dailyMetricsMaterializer,
         IUnitOfWork unitOfWork,
         ILogger<RecordSaleCommandHandler> logger)
     {
@@ -34,6 +39,8 @@ public sealed class RecordSaleCommandHandler :
         _clock = clock;
         _inventoryBatchRepository = inventoryBatchRepository;
         _stockMovementRepository = stockMovementRepository;
+        _auditLogRepository = auditLogRepository;
+        _dailyMetricsMaterializer = dailyMetricsMaterializer;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -86,6 +93,25 @@ public sealed class RecordSaleCommandHandler :
 
         try
         {
+            await _stockMovementRepository.SaveChangesAsync(cancellationToken);
+
+            await _auditLogRepository.AddAsync(new AuditLog(
+                nameof(StockMovement),
+                movement.Id,
+                "sale.recorded",
+                _currentUser.StoreId,
+                JsonSerializer.Serialize(new
+                {
+                    command.Quantity,
+                    unitPrice = batch.UnitSalePrice,
+                    total = command.Quantity * batch.UnitSalePrice
+                })), cancellationToken);
+
+            await _dailyMetricsMaterializer.RecomputeDayAsync(
+                [_currentUser.StoreId],
+                _clock.UtcNow.Date,
+                cancellationToken);
+
             await _stockMovementRepository.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException ex)

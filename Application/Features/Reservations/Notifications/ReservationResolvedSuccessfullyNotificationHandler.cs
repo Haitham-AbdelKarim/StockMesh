@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Application.Abstractions.Persistence;
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
 using Domain.Entities;
@@ -13,20 +15,29 @@ public sealed class ReservationResolvedSuccessfullyNotificationHandler :
     private readonly IStockReservationRepository _stockReservationRepository;
     private readonly IInventoryBatchRepository _inventoryBatchRepository;
     private readonly IStockMovementRepository _stockMovementRepository;
+    private readonly IAuditLogRepository _auditLogRepository;
+    private readonly IDailyMetricsMaterializer _dailyMetricsMaterializer;
     private readonly IDateTimeProvider _clock;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ReservationResolvedSuccessfullyNotificationHandler> _logger;
 
     public ReservationResolvedSuccessfullyNotificationHandler(
         IStockReservationRepository stockReservationRepository,
         IInventoryBatchRepository inventoryBatchRepository,
         IStockMovementRepository stockMovementRepository,
+        IAuditLogRepository auditLogRepository,
+        IDailyMetricsMaterializer dailyMetricsMaterializer,
         IDateTimeProvider clock,
+        IUnitOfWork unitOfWork,
         ILogger<ReservationResolvedSuccessfullyNotificationHandler> logger)
     {
         _stockReservationRepository = stockReservationRepository;
         _inventoryBatchRepository = inventoryBatchRepository;
         _stockMovementRepository = stockMovementRepository;
+        _auditLogRepository = auditLogRepository;
+        _dailyMetricsMaterializer = dailyMetricsMaterializer;
         _clock = clock;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -58,6 +69,8 @@ public sealed class ReservationResolvedSuccessfullyNotificationHandler :
 
                 return;
             }
+
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
             var occurredAt = _clock.UtcNow;
 
@@ -98,7 +111,40 @@ public sealed class ReservationResolvedSuccessfullyNotificationHandler :
                 reservation.OwningStoreId,
                 unitPrice: reservation.UnitPrice), cancellationToken);
 
+            await _auditLogRepository.AddAsync(new AuditLog(
+                nameof(InventoryBatch),
+                ownerBatch.Id,
+                "transfer.network_out",
+                reservation.OwningStoreId,
+                JsonSerializer.Serialize(new
+                {
+                    reservationId = reservation.Id,
+                    requestingStoreId = reservation.RequestingStoreId,
+                    reservation.Quantity
+                })), cancellationToken);
+
+            await _auditLogRepository.AddAsync(new AuditLog(
+                nameof(InventoryBatch),
+                incomingBatch.Id,
+                "transfer.network_in",
+                reservation.RequestingStoreId,
+                JsonSerializer.Serialize(new
+                {
+                    reservationId = reservation.Id,
+                    owningStoreId = reservation.OwningStoreId,
+                    reservation.Quantity
+                })), cancellationToken);
+
             await _stockMovementRepository.SaveChangesAsync(cancellationToken);
+
+            await _dailyMetricsMaterializer.RecomputeDayAsync(
+                [reservation.OwningStoreId, reservation.RequestingStoreId],
+                occurredAt.Date,
+                cancellationToken);
+
+            await _stockMovementRepository.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
         }
         catch (Exception ex)
         {

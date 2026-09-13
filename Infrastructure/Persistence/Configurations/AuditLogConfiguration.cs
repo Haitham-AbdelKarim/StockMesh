@@ -25,5 +25,10 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 
         builder.HasIndex(a => a.CreatedAt)
             .HasDatabaseName("IX_AuditLogs_CreatedAt");
+
+        builder.HasOne<Store>()
+            .WithMany()
+            .HasForeignKey(a => a.ActorStoreId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

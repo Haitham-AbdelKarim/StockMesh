@@ -54,16 +54,19 @@ public class StockReservation : BaseEntity
 
     public void Resolve(ReservationStatus outcome)
     {
-        if (Status != ReservationStatus.Pending)
+        var allowed = (Status, outcome) switch
         {
-            throw new InvalidReservationTransitionException(
-                $"Cannot transition reservation from {Status} to {outcome} — only Pending transitions are allowed.");
-        }
+            (ReservationStatus.Pending, ReservationStatus.Accepted) => true,
+            (ReservationStatus.Pending, ReservationStatus.Cancelled) => true,
+            (ReservationStatus.Accepted, ReservationStatus.Success) => true,
+            (ReservationStatus.Accepted, ReservationStatus.Cancelled) => true,
+            _ => false,
+        };
 
-        if (outcome != ReservationStatus.Success && outcome != ReservationStatus.Cancelled)
+        if (!allowed)
         {
             throw new InvalidReservationTransitionException(
-                $"Reservation resolution must be either Success or Cancelled, got {outcome}.");
+                $"Cannot transition reservation from {Status} to {outcome} — only Pending → Accepted/Cancelled and Accepted → Success/Cancelled are allowed.");
         }
 
         Status = outcome;

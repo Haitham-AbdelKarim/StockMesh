@@ -26,6 +26,15 @@ public class StockReservationConfiguration : IEntityTypeConfiguration<StockReser
         builder.HasIndex(r => r.OwningStoreId)
             .HasDatabaseName("IX_StockReservations_OwningStoreId");
 
+        builder.HasIndex(r => new { r.BatchId, r.Status })
+            .HasDatabaseName("IX_StockReservations_BatchId_Status");
+
+        builder.HasIndex(r => new { r.RequestingStoreId, r.CreatedAt })
+            .HasDatabaseName("IX_StockReservations_RequestingStoreId_CreatedAt");
+
+        builder.HasIndex(r => new { r.OwningStoreId, r.CreatedAt })
+            .HasDatabaseName("IX_StockReservations_OwningStoreId_CreatedAt");
+
         builder.HasIndex(r => r.Status)
             .HasDatabaseName("IX_StockReservations_Status");
 

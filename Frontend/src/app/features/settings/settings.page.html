@@ -1,0 +1,109 @@
+<div class="page-shell max-w-3xl">
+  <app-page-header title="Settings" subtitle="Manage your store profile and team" />
+
+  @if (loading()) {
+    <div class="flex items-center justify-center py-16">
+      <mat-spinner diameter="36" />
+    </div>
+  } @else {
+    <mat-card class="info-card">
+      <mat-card-content class="info-body">
+        <div class="info-label">Store ID</div>
+        <code class="info-value">{{ storeId() }}</code>
+        <div class="info-label mt-4">Role</div>
+        <div class="info-value">{{ role() }}</div>
+        <div class="info-label mt-4">Owner email</div>
+        <div class="info-value">{{ email() }}</div>
+
+        @if (profile(); as p) {
+          <div class="info-label mt-4">Verification</div>
+          <div>
+            @if (p.isVerified) {
+              <span class="verified-chip">Verified</span>
+            } @else {
+              <span class="verified-chip unverified">Pending verification</span>
+            }
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="info-card">
+      <mat-card-content>
+        <form [formGroup]="form" class="flex flex-col gap-4">
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Store name</mat-label>
+            <input matInput formControlName="name" />
+          </mat-form-field>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <mat-form-field appearance="outline">
+              <mat-label>Latitude</mat-label>
+              <input matInput type="number" step="any" formControlName="latitude" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Longitude</mat-label>
+              <input matInput type="number" step="any" formControlName="longitude" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Search radius (km)</mat-label>
+              <input matInput type="number" step="any" formControlName="maxSearchRadiusKm" />
+            </mat-form-field>
+          </div>
+
+          <div class="flex justify-end">
+            <button mat-flat-button color="primary" [disabled]="saving()" (click)="onSave()">
+              @if (saving()) {
+                <mat-spinner diameter="18" />
+              } @else {
+                Save changes
+              }
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="info-card">
+      <mat-card-content class="team-body">
+        <mat-icon class="team-icon" [fontSet]="'material-symbols-rounded'">payments</mat-icon>
+        <div class="team-copy">
+          <div class="team-title">Payouts via Stripe</div>
+          <div class="team-subtitle">
+            @if (connectLoading()) {
+              Checking payout status…
+            } @else if (payoutsEnabled()) {
+              Payouts enabled — transfer payments land directly in your connected account.
+            } @else if (connectAccountId()) {
+              Onboarding started but payouts are not enabled yet — finish the Stripe steps.
+            } @else {
+              Connect a Stripe Express account so requesting stores can pay you for shared stock.
+            }
+          </div>
+        </div>
+        @if (!connectLoading() && !payoutsEnabled()) {
+          <button mat-stroked-button [disabled]="connecting()" (click)="onConnect()">
+            {{ connectAccountId() ? 'Resume onboarding' : 'Connect payouts' }}
+          </button>
+        } @else if (payoutsEnabled()) {
+          <span class="verified-chip">Payouts enabled</span>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="info-card">
+      <mat-card-content class="team-body">
+        <mat-icon class="team-icon" [fontSet]="'material-symbols-rounded'">group_add</mat-icon>
+        <div class="team-copy">
+          <div class="team-title">Add a staff member</div>
+          <div class="team-subtitle">
+            Create credentials so an employee can sign in and manage inventory under your store.
+          </div>
+        </div>
+        <button mat-stroked-button (click)="goToJoin()">Invite staff</button>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

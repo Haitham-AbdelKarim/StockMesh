@@ -1,4 +1,5 @@
 using Application.Exceptions;
+using Domain.Exceptions;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,35 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        var problemDetails = exception switch
+        var problemDetails = BuildProblemDetails(exception);
+
+        var statusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
+
+        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+
+        _logger.Log(
+            statusCode >= StatusCodes.Status500InternalServerError
+                ? LogLevel.Error
+                : LogLevel.Warning,
+            exception,
+            "{Title}: {Message}",
+            problemDetails.Title,
+            exception.Message);
+
+        httpContext.Response.StatusCode = statusCode;
+
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: cancellationToken);
+
+        return true;
+    }
+
+    public static ProblemDetails BuildProblemDetails(Exception exception)
+    {
+        return exception switch
         {
             ValidationException => CreateValidationProblemDetails(
                 (ValidationException)exception),
@@ -47,6 +76,12 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                 Status = StatusCodes.Status404NotFound,
                 Detail = exception.Message
             },
+            DomainException => new ProblemDetails
+            {
+                Title = "Conflict",
+                Status = StatusCodes.Status409Conflict,
+                Detail = exception.Message
+            },
             _ => new ProblemDetails
             {
                 Title = "An error occurred while processing your request.",
@@ -54,29 +89,6 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
                 Detail = "Please try again later."
             }
         };
-
-        var statusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
-
-        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
-
-        _logger.Log(
-            statusCode >= StatusCodes.Status500InternalServerError
-                ? LogLevel.Error
-                : LogLevel.Warning,
-            exception,
-            "{Title}: {Message}",
-            problemDetails.Title,
-            exception.Message);
-
-        httpContext.Response.StatusCode = statusCode;
-
-        await httpContext.Response.WriteAsJsonAsync(
-            problemDetails,
-            options: null,
-            contentType: "application/problem+json",
-            cancellationToken: cancellationToken);
-
-        return true;
     }
 
     private static ProblemDetails CreateValidationProblemDetails(

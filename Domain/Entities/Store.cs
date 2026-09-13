@@ -17,6 +17,10 @@ public class Store : BaseEntity
 
     public double MaxSearchRadiusKm { get; private set; }
 
+    public string? StripeConnectAccountId { get; private set; }
+
+    public bool PayoutsEnabled { get; private set; }
+
     private Store()
     {
         Name = null!;
@@ -61,6 +65,21 @@ public class Store : BaseEntity
     public void Verify()
     {
         IsVerified = true;
+    }
+
+    public void ConnectStripeAccount(string accountId)
+    {
+        if (string.IsNullOrWhiteSpace(accountId))
+        {
+            throw new ArgumentException("Stripe Connect account id is required.", nameof(accountId));
+        }
+
+        StripeConnectAccountId = accountId;
+    }
+
+    public void SetPayoutStatus(bool enabled)
+    {
+        PayoutsEnabled = enabled;
     }
 
     public void UpdateProfile(

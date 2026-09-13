@@ -1,0 +1,151 @@
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(1200px 600px at 20% -10%, var(--mat-sys-secondary-container), transparent 60%),
+    radial-gradient(1000px 500px at 100% 110%, var(--mat-sys-tertiary-container), transparent 55%),
+    var(--mat-sys-surface);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  padding: 36px 32px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 20px;
+  box-shadow: var(--mat-sys-level2);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-brand-mark {
+  display: flex;
+  height: 42px;
+  width: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--mat-sys-primary), var(--mat-sys-tertiary));
+}
+
+.auth-brand-name {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface);
+}
+
+.auth-tagline {
+  margin: 8px 0 24px;
+  font-size: 14px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.auth-submit {
+  margin-top: 4px;
+  width: 100%;
+}
+
+.auth-footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.auth-footer a {
+  margin-left: 6px;
+  font-weight: 500;
+}
+
+.auth-footer a:link,
+.auth-footer a:visited {
+  color: var(--mat-sys-primary);
+}
+
+/* Register page: map-based store location */
+
+.auth-card-wide {
+  max-width: 560px;
+}
+
+.location-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.location-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.location-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+}
+
+.store-map {
+  height: 300px;
+  width: 100%;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 14px;
+  overflow: hidden;
+  background-color: #e8e6e3;
+  cursor: crosshair;
+  outline: none;
+}
+
+.location-selected {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  background: var(--mat-sys-primary-container);
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--mat-sys-on-primary-container);
+}
+
+.location-check-icon {
+  font-size: 20px;
+  height: 20px;
+  width: 20px;
+}
+
+.location-coords {
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  flex: 1;
+}
+
+.location-clear {
+  height: 28px;
+  width: 28px;
+  line-height: 28px;
+}
+
+.location-clear mat-icon {
+  font-size: 18px;
+  height: 18px;
+  width: 18px;
+}
+
+.location-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.location-required {
+  color: var(--mat-sys-error);
+}

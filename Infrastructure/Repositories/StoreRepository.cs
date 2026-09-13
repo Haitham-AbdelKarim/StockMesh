@@ -23,6 +23,15 @@ public class StoreRepository : IStoreRepository
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Store>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Stores
+            .Where(s => ids.Contains(s.Id))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Store>> GetByVerticalAsync(
         VerticalCategory verticalCategory,
         CancellationToken cancellationToken = default)

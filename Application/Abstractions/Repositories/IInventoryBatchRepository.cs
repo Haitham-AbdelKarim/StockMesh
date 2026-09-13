@@ -29,6 +29,10 @@ public interface IInventoryBatchRepository
         Guid storeId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<LowStockItem>> GetLowStockItemsAsync(
+        Guid storeId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<InventoryBatch>> GetSharedByStoresAsync(
         IReadOnlyCollection<Guid> storeIds,
         CancellationToken cancellationToken = default);

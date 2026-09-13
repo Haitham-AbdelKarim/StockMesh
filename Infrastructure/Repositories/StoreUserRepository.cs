@@ -125,6 +125,26 @@ public class StoreUserRepository : IStoreUserRepository
         return true;
     }
 
+    public async Task<bool> ClearRefreshTokenByHashAsync(
+        string refreshTokenHash,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _dbContext.Users.FirstOrDefaultAsync(
+            u => u.RefreshTokenHash == refreshTokenHash,
+            cancellationToken);
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.RefreshTokenHash = null;
+        user.RefreshTokenExpiresAt = null;
+        user.RefreshTokenCreatedAt = null;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     private async Task<Guid> CreateUserAsync(
         Guid storeId,
         VerticalCategory verticalCategory,

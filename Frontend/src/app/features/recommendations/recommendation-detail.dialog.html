@@ -1,0 +1,77 @@
+<h2 mat-dialog-title class="dialog-title">
+  <span>{{ item().productName }}</span>
+  <span class="action-chip" [class]="actionClass(item().recommendedAction)">{{
+    item().recommendedAction
+  }}</span>
+</h2>
+
+<mat-dialog-content class="dialog-content">
+  <p class="reason">{{ item().reason }}</p>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <div class="stat-value">{{ (item().confidenceScore * 100).toFixed(0) }}%</div>
+      <div class="stat-label">Confidence</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">
+        @if (item().predictedDepletionDate) {
+          {{ item().predictedDepletionDate | date: 'mediumDate' }}
+        } @else {
+          {{ item().trendSlope.toFixed(2) }}/day
+        }
+      </div>
+      <div class="stat-label">
+        {{ item().predictedDepletionDate ? 'Predicted depletion' : 'Trend slope' }}
+      </div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{ item().modelVersion === 'prophet-v1' ? 'AI forecast' : 'Rule estimate' }}</div>
+      <div class="stat-label">Model</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{ item().generatedAt | date: 'mediumDate' }}</div>
+      <div class="stat-label">Generated</div>
+    </div>
+  </div>
+
+  @if (forecastChart(); as chart) {
+    <h3 class="section-title">Demand forecast</h3>
+    <div class="chart-box">
+      <canvas
+        baseChart
+        type="line"
+        [datasets]="chart.datasets"
+        [labels]="chart.labels"
+        [options]="chartOptions"
+      ></canvas>
+    </div>
+  } @else {
+    <p class="hint">Rule estimate — this product does not have enough history for an AI forecast yet.</p>
+  }
+
+  @if (item().recommendedAction === 'MarketOpportunity') {
+    <h3 class="section-title">Network demand</h3>
+    @if (marketChart(); as marketData) {
+      <div class="chart-box">
+        <canvas
+          baseChart
+          type="line"
+          [datasets]="marketData.datasets"
+          [labels]="marketData.labels"
+          [options]="chartOptions"
+        ></canvas>
+      </div>
+    } @else if (marketError()) {
+      <p class="hint">{{ marketError() }}</p>
+    } @else {
+      <div class="flex items-center justify-center py-8">
+        <mat-spinner diameter="28" />
+      </div>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Close</button>
+</mat-dialog-actions>

@@ -60,7 +60,7 @@ public class InventoryBatchRepository : IInventoryBatchRepository
         CancellationToken cancellationToken = default)
     {
         var query = _dbContext.InventoryBatches
-            .Where(b => b.StoreId == storeId);
+            .Where(b => b.StoreId == storeId && (b.QuantityRemaining > 0 || b.SharedQuantity > 0));
 
         if (productId is { } id)
         {
@@ -83,7 +83,7 @@ public class InventoryBatchRepository : IInventoryBatchRepository
         CancellationToken cancellationToken = default)
     {
         var batches = await _dbContext.InventoryBatches
-            .Where(b => b.StoreId == storeId)
+            .Where(b => b.StoreId == storeId && (b.QuantityRemaining > 0 || b.SharedQuantity > 0))
             .ToListAsync(cancellationToken);
 
         return batches
@@ -94,6 +94,26 @@ public class InventoryBatchRepository : IInventoryBatchRepository
                 g.Sum(b => b.SharedQuantity),
                 g.Count()))
             .OrderBy(s => s.ProductId)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<LowStockItem>> GetLowStockItemsAsync(
+        Guid storeId,
+        CancellationToken cancellationToken = default)
+    {
+        var batches = await _dbContext.InventoryBatches
+            .Where(b => b.StoreId == storeId && (b.QuantityRemaining > 0 || b.SharedQuantity > 0))
+            .ToListAsync(cancellationToken);
+
+        return batches
+            .GroupBy(b => b.ProductId)
+            .Select(g => new LowStockItem(
+                g.Key,
+                g.Sum(b => b.QuantityRemaining),
+                g.Max(b => b.ReorderPoint),
+                g.Max(b => b.LeadTimeDays)))
+            .Where(item => item.TotalQuantityRemaining <= item.ReorderPoint)
+            .OrderBy(item => item.ProductId)
             .ToList();
     }
 

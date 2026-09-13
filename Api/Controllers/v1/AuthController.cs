@@ -2,6 +2,7 @@ using Api.Auth;
 using Application.DTOs.Auth;
 using Application.Features.Auth.Commands.JoinStore;
 using Application.Features.Auth.Commands.Login;
+using Application.Features.Auth.Commands.Logout;
 using Application.Features.Auth.Commands.Refresh;
 using Application.Features.Auth.Commands.RegisterStore;
 using Asp.Versioning;
@@ -53,6 +54,14 @@ public class AuthController : ControllerBase
     [HttpPost("refresh")]
     public async Task<ActionResult<TokenResponse>> Refresh(
         [FromBody] RefreshCommand command,
+        CancellationToken cancellationToken)
+    {
+        return this.FromResult(await _mediator.Send(command, cancellationToken));
+    }
+
+    [HttpPost("logout")]
+    public async Task<ActionResult<LogoutResponse>> Logout(
+        [FromBody] LogoutCommand command,
         CancellationToken cancellationToken)
     {
         return this.FromResult(await _mediator.Send(command, cancellationToken));

@@ -34,6 +34,10 @@ public static class ControllerBaseResultExtensions
             FailureKind.NotFound => (ActionResult<T>)controller.NotFound(problem),
             FailureKind.Validation => (ActionResult<T>)controller.UnprocessableEntity(problem),
             FailureKind.Conflict => (ActionResult<T>)controller.Conflict(problem),
+            FailureKind.RateLimited => (ActionResult<T>)controller.StatusCode(
+                StatusCodes.Status429TooManyRequests, problem),
+            FailureKind.BadGateway => (ActionResult<T>)controller.StatusCode(
+                StatusCodes.Status502BadGateway, problem),
             _ => (ActionResult<T>)controller.BadRequest(problem)
         };
     }
@@ -65,6 +69,18 @@ public static class ControllerBaseResultExtensions
                 Title = "Conflict",
                 Status = StatusCodes.Status409Conflict,
                 Detail = result.Error ?? "The operation conflicts with an existing resource."
+            },
+            FailureKind.RateLimited => new ProblemDetails
+            {
+                Title = "Too many requests",
+                Status = StatusCodes.Status429TooManyRequests,
+                Detail = result.Error ?? "Rate limit exceeded. Please try again later."
+            },
+            FailureKind.BadGateway => new ProblemDetails
+            {
+                Title = "Bad gateway",
+                Status = StatusCodes.Status502BadGateway,
+                Detail = result.Error ?? "A downstream service failed to respond."
             },
             FailureKind.Validation => new ValidationProblemDetails(
                 ToDictionary(result.ValidationErrors))

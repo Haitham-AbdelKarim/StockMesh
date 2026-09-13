@@ -44,7 +44,8 @@ public class ToggleBatchSharingCommandHandlerTests
     public async Task Handle_ShareExceedingRemaining_ReturnsBadRequest()
     {
         var batch = new InventoryBatch(StoreId, Product.Id, 2, 5m, 10m);
-        var handler = CreateHandler(new FakeInventoryBatchRepository(batch));
+        var auditLog = new FakeAuditLogRepository();
+        var handler = CreateHandler(new FakeInventoryBatchRepository(batch), auditLog);
 
         var result = await handler.Handle(
             new ToggleBatchSharingCommand(batch.Id, true, 5),
@@ -54,13 +55,15 @@ public class ToggleBatchSharingCommandHandlerTests
         result.Kind.Should().Be(FailureKind.BadRequest);
         batch.QuantityRemaining.Should().Be(2);
         batch.SharedQuantity.Should().Be(0);
+        auditLog.Entries.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task Handle_ValidShare_MovesQuantityIntoSharedPool()
+    public async Task Handle_ValidShare_MovesQuantityIntoSharedPoolAndWritesAudit()
     {
         var batch = new InventoryBatch(StoreId, Product.Id, 10, 5m, 10m);
-        var handler = CreateHandler(new FakeInventoryBatchRepository(batch));
+        var auditLog = new FakeAuditLogRepository();
+        var handler = CreateHandler(new FakeInventoryBatchRepository(batch), auditLog);
 
         var result = await handler.Handle(
             new ToggleBatchSharingCommand(batch.Id, true, 3),
@@ -70,6 +73,12 @@ public class ToggleBatchSharingCommandHandlerTests
         result.Value!.QuantityRemaining.Should().Be(7);
         result.Value.SharedQuantity.Should().Be(3);
         result.Value.IsShared.Should().BeTrue();
+
+        auditLog.Entries.Should().ContainSingle().Which.Should().Match<AuditLog>(a =>
+            a.EntityType == nameof(InventoryBatch)
+            && a.EntityId == batch.Id
+            && a.Action == "batch.shared"
+            && a.ActorStoreId == StoreId);
     }
 
     [Fact]
@@ -77,7 +86,8 @@ public class ToggleBatchSharingCommandHandlerTests
     {
         var batch = new InventoryBatch(StoreId, Product.Id, 10, 5m, 10m);
         batch.MarkAsShared(3);
-        var handler = CreateHandler(new FakeInventoryBatchRepository(batch));
+        var auditLog = new FakeAuditLogRepository();
+        var handler = CreateHandler(new FakeInventoryBatchRepository(batch), auditLog);
 
         var result = await handler.Handle(
             new ToggleBatchSharingCommand(batch.Id, false, 2),
@@ -87,6 +97,12 @@ public class ToggleBatchSharingCommandHandlerTests
         result.Value!.QuantityRemaining.Should().Be(9);
         result.Value.SharedQuantity.Should().Be(1);
         result.Value.IsShared.Should().BeTrue();
+
+        auditLog.Entries.Should().ContainSingle().Which.Should().Match<AuditLog>(a =>
+            a.EntityType == nameof(InventoryBatch)
+            && a.EntityId == batch.Id
+            && a.Action == "batch.unshared"
+            && a.ActorStoreId == StoreId);
     }
 
     [Fact]
@@ -94,7 +110,8 @@ public class ToggleBatchSharingCommandHandlerTests
     {
         var batch = new InventoryBatch(StoreId, Product.Id, 10, 5m, 10m);
         batch.MarkAsShared(2);
-        var handler = CreateHandler(new FakeInventoryBatchRepository(batch));
+        var auditLog = new FakeAuditLogRepository();
+        var handler = CreateHandler(new FakeInventoryBatchRepository(batch), auditLog);
 
         var result = await handler.Handle(
             new ToggleBatchSharingCommand(batch.Id, false, 5),
@@ -104,13 +121,15 @@ public class ToggleBatchSharingCommandHandlerTests
         result.Kind.Should().Be(FailureKind.BadRequest);
         batch.QuantityRemaining.Should().Be(8);
         batch.SharedQuantity.Should().Be(2);
+        auditLog.Entries.Should().BeEmpty();
     }
 
     [Fact]
     public async Task Handle_UnshareAllWhenSharedQuantityZero_ReturnsSuccessUnchanged()
     {
         var batch = new InventoryBatch(StoreId, Product.Id, 10, 5m, 10m);
-        var handler = CreateHandler(new FakeInventoryBatchRepository(batch));
+        var auditLog = new FakeAuditLogRepository();
+        var handler = CreateHandler(new FakeInventoryBatchRepository(batch), auditLog);
 
         var result = await handler.Handle(
             new ToggleBatchSharingCommand(batch.Id, false, 0),
@@ -120,6 +139,7 @@ public class ToggleBatchSharingCommandHandlerTests
         result.Value!.QuantityRemaining.Should().Be(10);
         result.Value.SharedQuantity.Should().Be(0);
         result.Value.IsShared.Should().BeFalse();
+        auditLog.Entries.Should().BeEmpty();
     }
 
     [Fact]
@@ -145,11 +165,13 @@ public class ToggleBatchSharingCommandHandlerTests
     }
 
     private static ToggleBatchSharingCommandHandler CreateHandler(
-        FakeInventoryBatchRepository inventoryBatchRepository)
+        FakeInventoryBatchRepository inventoryBatchRepository,
+        FakeAuditLogRepository? auditLogRepository = null)
     {
         return new ToggleBatchSharingCommandHandler(
             new FakeCurrentUser { StoreId = StoreId },
             inventoryBatchRepository,
-            new FakeProductRepository(Product));
+            new FakeProductRepository(Product),
+            auditLogRepository ?? new FakeAuditLogRepository());
     }
 }

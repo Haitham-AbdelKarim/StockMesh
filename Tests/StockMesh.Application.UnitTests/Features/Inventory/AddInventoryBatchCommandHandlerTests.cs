@@ -93,10 +93,11 @@ public class AddInventoryBatchCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OnSuccess_AddsNewBatchRow()
+    public async Task Handle_OnSuccess_AddsNewBatchRowAndAuditEntry()
     {
         var repository = new FakeInventoryBatchRepository();
-        var handler = CreateHandler(repository, new FakeProductRepository(Product));
+        var auditLog = new FakeAuditLogRepository();
+        var handler = CreateHandler(repository, new FakeProductRepository(Product), auditLog);
 
         var result = await handler.Handle(
             new AddInventoryBatchCommand(Product.Id, 3, 4m),
@@ -105,15 +106,23 @@ public class AddInventoryBatchCommandHandlerTests
         result.IsSuccess.Should().BeTrue();
         result.Value!.Id.Should().NotBe(Guid.Empty);
         repository.Count.Should().Be(1);
+
+        auditLog.Entries.Should().ContainSingle().Which.Should().Match<AuditLog>(a =>
+            a.EntityType == nameof(InventoryBatch)
+            && a.EntityId == result.Value.Id
+            && a.Action == "batch.created"
+            && a.ActorStoreId == StoreId);
     }
 
     private static AddInventoryBatchCommandHandler CreateHandler(
         FakeInventoryBatchRepository inventoryBatchRepository,
-        FakeProductRepository productRepository)
+        FakeProductRepository productRepository,
+        FakeAuditLogRepository? auditLogRepository = null)
     {
         return new AddInventoryBatchCommandHandler(
             new FakeCurrentUser { StoreId = StoreId, VerticalCategory = VerticalCategory.Pharmacy },
             inventoryBatchRepository,
-            productRepository);
+            productRepository,
+            auditLogRepository ?? new FakeAuditLogRepository());
     }
 }

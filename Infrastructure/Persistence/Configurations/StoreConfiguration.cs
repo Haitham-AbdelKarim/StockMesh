@@ -25,5 +25,10 @@ public class StoreConfiguration : IEntityTypeConfiguration<Store>
         builder.Property(s => s.IsVerified).IsRequired();
 
         builder.Property(s => s.MaxSearchRadiusKm).IsRequired();
+
+        builder.Property(s => s.StripeConnectAccountId)
+            .HasMaxLength(64);
+
+        builder.Property(s => s.PayoutsEnabled).IsRequired();
     }
 }

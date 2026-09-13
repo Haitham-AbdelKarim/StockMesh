@@ -27,6 +27,9 @@ public class StockMovementConfiguration : IEntityTypeConfiguration<StockMovement
         builder.HasIndex(m => m.StoreId)
             .HasDatabaseName("IX_StockMovements_StoreId");
 
+        builder.HasIndex(m => new { m.StoreId, m.OccurredAt })
+            .HasDatabaseName("IX_StockMovements_StoreId_OccurredAt");
+
         builder.HasIndex(m => m.RelatedStoreId)
             .HasDatabaseName("IX_StockMovements_RelatedStoreId");
 

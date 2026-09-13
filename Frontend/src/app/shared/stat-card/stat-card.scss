@@ -1,0 +1,26 @@
+.stat-card {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 16px;
+  background-color: var(--mat-sys-surface);
+}
+
+.stat-label {
+  @apply text-xs font-medium uppercase tracking-wide;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.stat-value {
+  @apply mt-1 text-2xl font-semibold tracking-tight;
+  color: var(--mat-sys-on-surface);
+}
+
+.stat-hint {
+  @apply text-xs;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.stat-icon {
+  @apply flex h-11 w-11 items-center justify-center rounded-full text-lg;
+  background-color: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}

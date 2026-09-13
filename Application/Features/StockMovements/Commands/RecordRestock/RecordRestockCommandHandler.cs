@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Application.Abstractions.Persistence;
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
 using Application.Common.Models;
@@ -5,6 +7,8 @@ using Application.DTOs.StockMovements;
 using Domain.Entities;
 using Domain.Enums;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Features.StockMovements.Commands.RecordRestock;
 
@@ -16,19 +20,31 @@ public sealed class RecordRestockCommandHandler :
     private readonly IInventoryBatchRepository _inventoryBatchRepository;
     private readonly IProductRepository _productRepository;
     private readonly IStockMovementRepository _stockMovementRepository;
+    private readonly IAuditLogRepository _auditLogRepository;
+    private readonly IDailyMetricsMaterializer _dailyMetricsMaterializer;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<RecordRestockCommandHandler> _logger;
 
     public RecordRestockCommandHandler(
         ICurrentUser currentUser,
         IDateTimeProvider clock,
         IInventoryBatchRepository inventoryBatchRepository,
         IProductRepository productRepository,
-        IStockMovementRepository stockMovementRepository)
+        IStockMovementRepository stockMovementRepository,
+        IAuditLogRepository auditLogRepository,
+        IDailyMetricsMaterializer dailyMetricsMaterializer,
+        IUnitOfWork unitOfWork,
+        ILogger<RecordRestockCommandHandler> logger)
     {
         _currentUser = currentUser;
         _clock = clock;
         _inventoryBatchRepository = inventoryBatchRepository;
         _productRepository = productRepository;
         _stockMovementRepository = stockMovementRepository;
+        _auditLogRepository = auditLogRepository;
+        _dailyMetricsMaterializer = dailyMetricsMaterializer;
+        _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<Result<RestockResponse>> Handle(
@@ -47,6 +63,8 @@ public sealed class RecordRestockCommandHandler :
             return Result<RestockResponse>.BadRequest(
                 "Product does not belong to your vertical.");
         }
+
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
         var previousBatch = await _inventoryBatchRepository.GetLatestByProductAsync(
             _currentUser.StoreId,
@@ -75,7 +93,44 @@ public sealed class RecordRestockCommandHandler :
             supplierName: command.SupplierName);
 
         await _stockMovementRepository.AddAsync(movement, cancellationToken);
-        await _stockMovementRepository.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await _stockMovementRepository.SaveChangesAsync(cancellationToken);
+
+            await _auditLogRepository.AddAsync(new AuditLog(
+                nameof(InventoryBatch),
+                batch.Id,
+                "restock.recorded",
+                _currentUser.StoreId,
+                JsonSerializer.Serialize(new
+                {
+                    command.Quantity,
+                    command.UnitCost,
+                    command.SupplierName
+                })), cancellationToken);
+
+            await _dailyMetricsMaterializer.RecomputeDayAsync(
+                [_currentUser.StoreId],
+                _clock.UtcNow.Date,
+                cancellationToken);
+
+            await _stockMovementRepository.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Concurrent modification while recording a restock for product {ProductId}.",
+                command.ProductId);
+
+            await transaction.RollbackAsync(cancellationToken);
+
+            return Result<RestockResponse>.Conflict(
+                "The stock changed while processing. Please try again.");
+        }
+
+        await transaction.CommitAsync(cancellationToken);
 
         return Result<RestockResponse>.Success(new RestockResponse(
             batch.Id,

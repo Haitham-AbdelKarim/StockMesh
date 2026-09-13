@@ -13,7 +13,7 @@ public class InventoryBatch : BaseEntity
 
     public int SharedQuantity { get; private set; }
 
-    public bool IsShared { get; private set; }
+    public bool IsShared => SharedQuantity > 0;
 
     public decimal UnitCost { get; private set; }
 
@@ -71,7 +71,6 @@ public class InventoryBatch : BaseEntity
 
         QuantityRemaining -= quantity;
         SharedQuantity += quantity;
-        IsShared = SharedQuantity > 0;
     }
 
     public void ReserveFromSharedPool(int quantity)
@@ -88,11 +87,6 @@ public class InventoryBatch : BaseEntity
         }
 
         SharedQuantity -= quantity;
-
-        if (SharedQuantity == 0)
-        {
-            IsShared = false;
-        }
     }
 
     public void ReleaseToSharedPool(int quantity)
@@ -103,7 +97,6 @@ public class InventoryBatch : BaseEntity
         }
 
         SharedQuantity += quantity;
-        IsShared = true;
     }
 
     public void Unshare(int quantity)
@@ -122,7 +115,6 @@ public class InventoryBatch : BaseEntity
 
         SharedQuantity -= quantity;
         QuantityRemaining += quantity;
-        IsShared = SharedQuantity > 0;
     }
 
     public void UpdateDetails(

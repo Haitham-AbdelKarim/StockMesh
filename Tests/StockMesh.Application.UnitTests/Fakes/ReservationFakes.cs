@@ -147,6 +147,83 @@ internal sealed class FakeStockReservationRepository : IStockReservationReposito
                 .ToList());
     }
 
+    public Task<IReadOnlyList<StockReservation>> GetForStoreByDateRangeAsync(
+        Guid storeId,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<StockReservation>>(
+            _reservations
+                .Where(r => (r.RequestingStoreId == storeId || r.OwningStoreId == storeId)
+                    && r.CreatedAt >= from
+                    && r.CreatedAt < to)
+                .ToList());
+    }
+
+    public Task<IReadOnlyList<StockReservation>> GetByDateRangeAsync(
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<StockReservation>>(
+            _reservations
+                .Where(r => r.CreatedAt >= from && r.CreatedAt < to)
+                .ToList());
+    }
+
+    public Task<(IReadOnlyList<StockReservation> Items, int TotalCount)> GetForStoreAsync(
+        Guid storeId,
+        bool? incoming,
+        ReservationStatus? status,
+        DateTime? from,
+        DateTime? to,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _reservations.AsEnumerable();
+
+        if (incoming is true)
+        {
+            query = query.Where(r => r.OwningStoreId == storeId);
+        }
+        else if (incoming is false)
+        {
+            query = query.Where(r => r.RequestingStoreId == storeId);
+        }
+        else
+        {
+            query = query.Where(r => r.RequestingStoreId == storeId || r.OwningStoreId == storeId);
+        }
+
+        if (status is { } reservationStatus)
+        {
+            query = query.Where(r => r.Status == reservationStatus);
+        }
+
+        if (from is { } fromDate)
+        {
+            query = query.Where(r => r.CreatedAt >= fromDate);
+        }
+
+        if (to is { } toDate)
+        {
+            query = query.Where(r => r.CreatedAt <= toDate);
+        }
+
+        var all = query
+            .OrderByDescending(r => r.CreatedAt)
+            .ToList();
+
+        var items = all
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return Task.FromResult(((IReadOnlyList<StockReservation>)items, all.Count));
+    }
+
     public Task<Guid> AddAsync(
         StockReservation reservation,
         CancellationToken cancellationToken = default)

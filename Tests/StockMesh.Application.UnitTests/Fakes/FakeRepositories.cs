@@ -23,6 +23,14 @@ internal sealed class FakeStoreRepository : IStoreRepository
         return Task.FromResult(_stores.GetValueOrDefault(id));
     }
 
+    public Task<IReadOnlyList<Store>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<Store>>(
+            _stores.Values.Where(s => ids.Contains(s.Id)).ToList());
+    }
+
     public Task<IReadOnlyList<Store>> GetByVerticalAsync(
         VerticalCategory verticalCategory,
         CancellationToken cancellationToken = default)
@@ -194,6 +202,24 @@ internal sealed class FakeInventoryBatchRepository : IInventoryBatchRepository
                 .ToList());
     }
 
+    public Task<IReadOnlyList<LowStockItem>> GetLowStockItemsAsync(
+        Guid storeId,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<LowStockItem>>(
+            _batches.Values
+                .Where(b => b.StoreId == storeId)
+                .GroupBy(b => b.ProductId)
+                .Select(g => new LowStockItem(
+                    g.Key,
+                    g.Sum(b => b.QuantityRemaining),
+                    g.Max(b => b.ReorderPoint),
+                    g.Max(b => b.LeadTimeDays)))
+                .Where(i => i.TotalQuantityRemaining <= i.ReorderPoint)
+                .OrderBy(i => i.ProductId)
+                .ToList());
+    }
+
     public Task<IReadOnlyList<InventoryBatch>> GetSharedByStoresAsync(
         IReadOnlyCollection<Guid> storeIds,
         CancellationToken cancellationToken = default)
@@ -298,6 +324,30 @@ internal sealed class FakeStockMovementRepository : IStockMovementRepository
             .ToList();
 
         return Task.FromResult(((IReadOnlyList<StockMovement>)items, all.Count));
+    }
+
+    public Task<IReadOnlyList<StockMovement>> GetForStoresAsync(
+        IReadOnlyCollection<Guid> storeIds,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<StockMovement>>(
+            _movements
+                .Where(m => storeIds.Contains(m.StoreId) && m.OccurredAt >= from && m.OccurredAt < to)
+                .ToList());
+    }
+
+    public Task<IReadOnlyList<StockMovement>> GetByTypeInRangeAsync(
+        MovementType movementType,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<StockMovement>>(
+            _movements
+                .Where(m => m.MovementType == movementType && m.OccurredAt >= from && m.OccurredAt < to)
+                .ToList());
     }
 
     public Task<Guid> AddAsync(

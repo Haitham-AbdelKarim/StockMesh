@@ -76,6 +76,28 @@ public class StockMovementRepository : IStockMovementRepository
         return (items, totalCount);
     }
 
+    public async Task<IReadOnlyList<StockMovement>> GetForStoresAsync(
+        IReadOnlyCollection<Guid> storeIds,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.StockMovements
+            .Where(m => storeIds.Contains(m.StoreId) && m.OccurredAt >= from && m.OccurredAt < to)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<StockMovement>> GetByTypeInRangeAsync(
+        MovementType movementType,
+        DateTime from,
+        DateTime to,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.StockMovements
+            .Where(m => m.MovementType == movementType && m.OccurredAt >= from && m.OccurredAt < to)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Guid> AddAsync(
         StockMovement movement,
         CancellationToken cancellationToken = default)

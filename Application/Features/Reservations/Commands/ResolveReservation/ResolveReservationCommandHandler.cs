@@ -3,7 +3,6 @@ using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
 using Application.Common.Models;
 using Application.DTOs.Reservations;
-using Application.Features.Reservations.Notifications;
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Exceptions;
@@ -20,7 +19,7 @@ public sealed class ResolveReservationCommandHandler :
     {
         public const string EntityType = "StockReservation";
 
-        public const string ResolvedSuccessfully = "reservation.resolved.success";
+        public const string Accepted = "reservation.accepted";
 
         public const string ResolvedCancelled = "reservation.resolved.cancelled";
     }
@@ -29,9 +28,9 @@ public sealed class ResolveReservationCommandHandler :
     private readonly IDateTimeProvider _clock;
     private readonly IStockReservationRepository _stockReservationRepository;
     private readonly IInventoryBatchRepository _inventoryBatchRepository;
+    private readonly IReservationPaymentRepository _paymentRepository;
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IMediator _mediator;
     private readonly ILogger<ResolveReservationCommandHandler> _logger;
 
     public ResolveReservationCommandHandler(
@@ -39,18 +38,18 @@ public sealed class ResolveReservationCommandHandler :
         IDateTimeProvider clock,
         IStockReservationRepository stockReservationRepository,
         IInventoryBatchRepository inventoryBatchRepository,
+        IReservationPaymentRepository paymentRepository,
         IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
-        IMediator mediator,
         ILogger<ResolveReservationCommandHandler> logger)
     {
         _currentUser = currentUser;
         _clock = clock;
         _stockReservationRepository = stockReservationRepository;
         _inventoryBatchRepository = inventoryBatchRepository;
+        _paymentRepository = paymentRepository;
         _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
-        _mediator = mediator;
         _logger = logger;
     }
 
@@ -72,16 +71,34 @@ public sealed class ResolveReservationCommandHandler :
                 "Only the requesting or owning store can resolve a reservation.");
         }
 
+        if (command.Outcome == ReservationStatus.Success)
+        {
+            return Result<ReservationResponse>.BadRequest(
+                "Success is set by payment confirmation, not by direct resolution.");
+        }
+
+        if (command.Outcome == ReservationStatus.Accepted
+            && _currentUser.StoreId != reservation.OwningStoreId)
+        {
+            return Result<ReservationResponse>.Forbidden(
+                "Only the owning store can accept a reservation.");
+        }
+
         await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-        var batch = await _inventoryBatchRepository.GetByIdAsync(reservation.BatchId, cancellationToken);
+        InventoryBatch? batch = null;
 
-        if (batch is null)
+        if (command.Outcome == ReservationStatus.Cancelled)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            batch = await _inventoryBatchRepository.GetByIdAsync(reservation.BatchId, cancellationToken);
 
-            return Result<ReservationResponse>.Conflict(
-                "The reservation's inventory batch no longer exists.");
+            if (batch is null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+
+                return Result<ReservationResponse>.Conflict(
+                    "The reservation's inventory batch no longer exists.");
+            }
         }
 
         try
@@ -97,7 +114,7 @@ public sealed class ResolveReservationCommandHandler :
 
         if (command.Outcome == ReservationStatus.Cancelled)
         {
-            batch.ReleaseToSharedPool(reservation.Quantity);
+            batch!.ReleaseToSharedPool(reservation.Quantity);
             _inventoryBatchRepository.Update(batch);
         }
 
@@ -106,8 +123,8 @@ public sealed class ResolveReservationCommandHandler :
         await _auditLogRepository.AddAsync(new AuditLog(
             AuditActions.EntityType,
             reservation.Id,
-            command.Outcome == ReservationStatus.Success
-                ? AuditActions.ResolvedSuccessfully
+            command.Outcome == ReservationStatus.Accepted
+                ? AuditActions.Accepted
                 : AuditActions.ResolvedCancelled,
             _currentUser.StoreId,
             metadata: null,
@@ -132,13 +149,14 @@ public sealed class ResolveReservationCommandHandler :
 
         await transaction.CommitAsync(cancellationToken);
 
-        if (command.Outcome == ReservationStatus.Success)
-        {
-            await _mediator.Publish(
-                new ReservationResolvedSuccessfullyNotification(reservation.Id),
-                cancellationToken);
-        }
+        var payment = await _paymentRepository.GetByReservationIdAsync(
+            reservation.Id,
+            cancellationToken);
 
-        return Result<ReservationResponse>.Success(ReservationMapper.ToResponse(reservation));
+        var paymentState = payment is null
+            ? ReservationPaymentState.Unpaid
+            : ReservationMapper.ToPaymentState(payment.Status);
+
+        return Result<ReservationResponse>.Success(ReservationMapper.ToResponse(reservation, paymentState));
     }
 }

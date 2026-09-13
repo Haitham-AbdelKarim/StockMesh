@@ -20,4 +20,6 @@ public interface IStoreUserRepository
     Task<Guid> CreateStaffAsync(Guid storeId, VerticalCategory verticalCategory, string email, string password, CancellationToken cancellationToken = default);
 
     Task<bool> UpdateRefreshTokenAsync(Guid userId, string refreshTokenHash, DateTimeOffset expiresAt, CancellationToken cancellationToken = default);
+
+    Task<bool> ClearRefreshTokenByHashAsync(string refreshTokenHash, CancellationToken cancellationToken = default);
 }

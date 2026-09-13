@@ -13,4 +13,5 @@ public sealed record ReservationResponse(
     DateTime? DeliveryEta,
     ReservationStatus Status,
     DateTime HoldExpiresAt,
-    DateTime? ResolvedAt);
+    DateTime? ResolvedAt,
+    ReservationPaymentState PaymentState);

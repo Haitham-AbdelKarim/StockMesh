@@ -74,4 +74,19 @@ public class AuthControllerSmokeTests : IClassFixture<TestApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
+
+    [Fact]
+    public async Task Logout_WithMissingToken_ReturnsUnprocessableEntity()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsync(
+            "/api/v1/auth/logout",
+            new StringContent(
+                JsonSerializer.Serialize(new { }),
+                Encoding.UTF8,
+                "application/json"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+    }
 }

@@ -13,15 +13,18 @@ public sealed class AddInventoryBatchCommandHandler :
     private readonly ICurrentUser _currentUser;
     private readonly IInventoryBatchRepository _inventoryBatchRepository;
     private readonly IProductRepository _productRepository;
+    private readonly IAuditLogRepository _auditLogRepository;
 
     public AddInventoryBatchCommandHandler(
         ICurrentUser currentUser,
         IInventoryBatchRepository inventoryBatchRepository,
-        IProductRepository productRepository)
+        IProductRepository productRepository,
+        IAuditLogRepository auditLogRepository)
     {
         _currentUser = currentUser;
         _inventoryBatchRepository = inventoryBatchRepository;
         _productRepository = productRepository;
+        _auditLogRepository = auditLogRepository;
     }
 
     public async Task<Result<InventoryBatchResponse>> Handle(
@@ -58,6 +61,13 @@ public sealed class AddInventoryBatchCommandHandler :
             expiryDate: command.ExpiryDate);
 
         await _inventoryBatchRepository.AddAsync(batch, cancellationToken);
+
+        await _auditLogRepository.AddAsync(new AuditLog(
+            nameof(InventoryBatch),
+            batch.Id,
+            "batch.created",
+            _currentUser.StoreId), cancellationToken);
+
         await _inventoryBatchRepository.SaveChangesAsync(cancellationToken);
 
         return Result<InventoryBatchResponse>.Success(

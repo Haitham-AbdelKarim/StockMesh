@@ -7,6 +7,10 @@ public interface IStoreRepository
 {
     Task<Store?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Store>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Store>> GetByVerticalAsync(
         VerticalCategory verticalCategory,
         CancellationToken cancellationToken = default);

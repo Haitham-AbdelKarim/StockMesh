@@ -1,0 +1,49 @@
+<div class="auth-page">
+  <mat-card class="auth-card">
+    <div class="auth-brand">
+      <span class="auth-brand-mark">M</span>
+      <span class="auth-brand-name">StockMesh</span>
+    </div>
+    <p class="auth-tagline">Invite a staff member to join your store</p>
+
+    @if (serverError()) {
+      <div class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {{ serverError() }}
+      </div>
+    }
+
+    @if (joined()) {
+      <div class="mb-4 rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">
+        Staff member added. They can now sign in with the credentials you set.
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+      <mat-form-field appearance="outline">
+        <mat-label>New staff email</mat-label>
+        <input matInput type="email" formControlName="email" />
+        <mat-icon matPrefix>person_add</mat-icon>
+        <mat-error>Enter a valid email</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Temporary password</mat-label>
+        <input matInput type="password" formControlName="password" />
+        <mat-icon matPrefix>lock</mat-icon>
+        <mat-error>At least 8 characters</mat-error>
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="submitting()" class="auth-submit">
+        @if (submitting()) {
+          <mat-spinner diameter="18" />
+        } @else {
+          Add staff member
+        }
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <a routerLink="/settings">Back to settings</a>
+    </div>
+  </mat-card>
+</div>
