@@ -17,16 +17,18 @@ public class ReservationResolvedSuccessfullyNotificationHandlerTests
         new("Paracetamol 500mg", VerticalCategory.Pharmacy, "Panadol");
 
     [Fact]
-    public async Task Handle_OnSuccess_RecordsTransferAndRequesterBatch()
+    public async Task Handle_OnSuccess_RecordsTransferAndRequesterBatchAndAudit()
     {
         var ownerBatch = CreateSharedBatch(10);
         var reservation = CreateSuccessReservation(ownerBatch.Id, 3);
         var batchRepository = new FakeInventoryBatchRepository(ownerBatch);
         var movementRepository = new FakeStockMovementRepository();
+        var auditLog = new FakeAuditLogRepository();
         var handler = CreateHandler(
             new FakeStockReservationRepository(reservation),
             batchRepository,
-            movementRepository);
+            movementRepository,
+            auditLog: auditLog);
 
         await handler.Handle(
             new ReservationResolvedSuccessfullyNotification(reservation.Id),
@@ -58,6 +60,12 @@ public class ReservationResolvedSuccessfullyNotificationHandlerTests
             && m.Quantity == 3
             && m.RelatedStoreId == OwnerStoreId
             && m.UnitPrice == 10m);
+
+        auditLog.Entries.Should().HaveCount(2);
+        auditLog.Entries.Should().Contain(a =>
+            a.Action == "transfer.network_out" && a.ActorStoreId == OwnerStoreId);
+        auditLog.Entries.Should().Contain(a =>
+            a.Action == "transfer.network_in" && a.ActorStoreId == RequesterStoreId);
 
         ownerBatch.QuantityRemaining.Should().Be(10);
         ownerBatch.SharedQuantity.Should().Be(10);
@@ -196,12 +204,14 @@ public class ReservationResolvedSuccessfullyNotificationHandlerTests
         FakeInventoryBatchRepository batchRepository,
         FakeStockMovementRepository movementRepository,
         FakeDailyMetricsMaterializer? materializer = null,
-        FakeUnitOfWork? unitOfWork = null)
+        FakeUnitOfWork? unitOfWork = null,
+        FakeAuditLogRepository? auditLog = null)
     {
         return new ReservationResolvedSuccessfullyNotificationHandler(
             reservationRepository,
             batchRepository,
             movementRepository,
+            auditLog ?? new FakeAuditLogRepository(),
             materializer ?? new FakeDailyMetricsMaterializer(),
             Clock,
             unitOfWork ?? new FakeUnitOfWork(),

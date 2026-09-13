@@ -23,7 +23,7 @@ public class RecordSaleCommandHandlerTests
     public async Task Handle_WhenBatchDoesNotExist_ReturnsNotFoundAndRollsBack()
     {
         var unitOfWork = new FakeUnitOfWork();
-        var handler = CreateHandler(new FakeStockMovementRepository(), unitOfWork);
+        var handler = CreateHandler(new FakeStockMovementRepository(), unitOfWork, null);
 
         var result = await handler.Handle(
             new RecordSaleCommand(Guid.NewGuid(), 2),
@@ -40,7 +40,9 @@ public class RecordSaleCommandHandlerTests
         var otherBatch = new InventoryBatch(OtherStoreId, Guid.NewGuid(), 5, 4m, 9m);
         var handler = CreateHandler(
             new FakeStockMovementRepository(),
-            batches: otherBatch);
+            null,
+            null,
+            otherBatch);
 
         var result = await handler.Handle(
             new RecordSaleCommand(otherBatch.Id, 1),
@@ -55,7 +57,7 @@ public class RecordSaleCommandHandlerTests
     public async Task Handle_WhenInsufficientPrivateStock_ReturnsConflictAndRollsBack()
     {
         var unitOfWork = new FakeUnitOfWork();
-        var handler = CreateHandler(new FakeStockMovementRepository(), unitOfWork);
+        var handler = CreateHandler(new FakeStockMovementRepository(), unitOfWork, null);
 
         var result = await handler.Handle(
             new RecordSaleCommand(Batch.Id, 11),
@@ -72,8 +74,9 @@ public class RecordSaleCommandHandlerTests
     {
         var batch = new InventoryBatch(StoreId, Guid.NewGuid(), 10, 5m, 12.5m);
         var movements = new FakeStockMovementRepository();
+        var auditLog = new FakeAuditLogRepository();
         var unitOfWork = new FakeUnitOfWork();
-        var handler = CreateHandler(movements, unitOfWork, batch);
+        var handler = CreateHandler(movements, unitOfWork, auditLog, batch);
 
         var result = await handler.Handle(
             new RecordSaleCommand(batch.Id, 3),
@@ -95,6 +98,12 @@ public class RecordSaleCommandHandlerTests
             && m.UnitCost == 5m
             && m.RelatedStoreId == null);
 
+        auditLog.Entries.Should().ContainSingle().Which.Should().Match<AuditLog>(a =>
+            a.EntityType == nameof(StockMovement)
+            && a.EntityId == result.Value.MovementId
+            && a.Action == "sale.recorded"
+            && a.ActorStoreId == StoreId);
+
         unitOfWork.Transactions.Should().ContainSingle().Subject.Committed.Should().BeTrue();
     }
 
@@ -106,7 +115,7 @@ public class RecordSaleCommandHandlerTests
             SaveException = new DbUpdateConcurrencyException("Concurrent update.")
         };
         var unitOfWork = new FakeUnitOfWork();
-        var handler = CreateHandler(movements, unitOfWork, Batch);
+        var handler = CreateHandler(movements, unitOfWork, null, Batch);
 
         var result = await handler.Handle(
             new RecordSaleCommand(Batch.Id, 2),
@@ -119,16 +128,18 @@ public class RecordSaleCommandHandlerTests
 
     private static RecordSaleCommandHandler CreateHandler(
         FakeStockMovementRepository movementRepository,
-        FakeUnitOfWork? unitOfWork = null,
+        FakeUnitOfWork? unitOfWork,
+        FakeAuditLogRepository? auditLogRepository,
         params InventoryBatch[] batches)
     {
-        var allBatches = batches.Length == 0 ? new[] { Batch } : batches;
+        var allBatches = batches.Length == 0 ? [Batch] : batches;
 
         return new RecordSaleCommandHandler(
             new FakeCurrentUser { StoreId = StoreId, UserId = Guid.NewGuid() },
             Clock,
             new FakeInventoryBatchRepository(allBatches),
             movementRepository,
+            auditLogRepository ?? new FakeAuditLogRepository(),
             new FakeDailyMetricsMaterializer(),
             unitOfWork ?? new FakeUnitOfWork(),
             NullLogger<RecordSaleCommandHandler>.Instance);

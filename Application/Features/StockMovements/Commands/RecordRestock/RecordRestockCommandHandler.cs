@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Application.Abstractions.Persistence;
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
@@ -19,6 +20,7 @@ public sealed class RecordRestockCommandHandler :
     private readonly IInventoryBatchRepository _inventoryBatchRepository;
     private readonly IProductRepository _productRepository;
     private readonly IStockMovementRepository _stockMovementRepository;
+    private readonly IAuditLogRepository _auditLogRepository;
     private readonly IDailyMetricsMaterializer _dailyMetricsMaterializer;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<RecordRestockCommandHandler> _logger;
@@ -29,6 +31,7 @@ public sealed class RecordRestockCommandHandler :
         IInventoryBatchRepository inventoryBatchRepository,
         IProductRepository productRepository,
         IStockMovementRepository stockMovementRepository,
+        IAuditLogRepository auditLogRepository,
         IDailyMetricsMaterializer dailyMetricsMaterializer,
         IUnitOfWork unitOfWork,
         ILogger<RecordRestockCommandHandler> logger)
@@ -38,6 +41,7 @@ public sealed class RecordRestockCommandHandler :
         _inventoryBatchRepository = inventoryBatchRepository;
         _productRepository = productRepository;
         _stockMovementRepository = stockMovementRepository;
+        _auditLogRepository = auditLogRepository;
         _dailyMetricsMaterializer = dailyMetricsMaterializer;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -93,6 +97,18 @@ public sealed class RecordRestockCommandHandler :
         try
         {
             await _stockMovementRepository.SaveChangesAsync(cancellationToken);
+
+            await _auditLogRepository.AddAsync(new AuditLog(
+                nameof(InventoryBatch),
+                batch.Id,
+                "restock.recorded",
+                _currentUser.StoreId,
+                JsonSerializer.Serialize(new
+                {
+                    command.Quantity,
+                    command.UnitCost,
+                    command.SupplierName
+                })), cancellationToken);
 
             await _dailyMetricsMaterializer.RecomputeDayAsync(
                 [_currentUser.StoreId],

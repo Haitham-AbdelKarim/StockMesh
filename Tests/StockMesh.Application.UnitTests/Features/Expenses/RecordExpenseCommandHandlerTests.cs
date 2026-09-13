@@ -17,9 +17,10 @@ public class RecordExpenseCommandHandlerTests
     public async Task Handle_OnSuccess_RecordsExpenseAndRecomputesMetrics()
     {
         var expenses = new FakeExpenseRepository();
+        var auditLog = new FakeAuditLogRepository();
         var materializer = new FakeDailyMetricsMaterializer();
         var unitOfWork = new FakeUnitOfWork();
-        var handler = CreateHandler(expenses, materializer, unitOfWork);
+        var handler = CreateHandler(expenses, materializer, unitOfWork, auditLog);
 
         var result = await handler.Handle(
             new RecordExpenseCommand("Rent", 150.5m, Clock.UtcNow, "Monthly rent."),
@@ -36,6 +37,12 @@ public class RecordExpenseCommandHandlerTests
 
         expenses.All.Should().ContainSingle();
         expenses.All.Single().StoreId.Should().Be(StoreId);
+
+        auditLog.Entries.Should().ContainSingle().Which.Should().Match<AuditLog>(a =>
+            a.EntityType == nameof(Expense)
+            && a.EntityId == result.Value.Id
+            && a.Action == "expense.recorded"
+            && a.ActorStoreId == StoreId);
 
         materializer.Calls.Should().ContainSingle();
         materializer.Calls.Single().StoreIds.Should().BeEquivalentTo(new[] { StoreId });
@@ -78,11 +85,13 @@ public class RecordExpenseCommandHandlerTests
     private static RecordExpenseCommandHandler CreateHandler(
         FakeExpenseRepository expenseRepository,
         FakeDailyMetricsMaterializer materializer,
-        FakeUnitOfWork unitOfWork)
+        FakeUnitOfWork unitOfWork,
+        FakeAuditLogRepository? auditLogRepository = null)
     {
         return new RecordExpenseCommandHandler(
             new FakeCurrentUser { StoreId = StoreId },
             expenseRepository,
+            auditLogRepository ?? new FakeAuditLogRepository(),
             materializer,
             unitOfWork,
             NullLogger<RecordExpenseCommandHandler>.Instance);

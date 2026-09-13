@@ -55,10 +55,12 @@ public class RecordRestockCommandHandlerTests
     {
         var batchRepository = new FakeInventoryBatchRepository();
         var movementRepository = new FakeStockMovementRepository();
+        var auditLog = new FakeAuditLogRepository();
         var handler = CreateHandler(
             movementRepository,
             batchRepository,
-            new FakeProductRepository(Product));
+            new FakeProductRepository(Product),
+            auditLog);
 
         var result = await handler.Handle(
             new RecordRestockCommand(Product.Id, 12, 4.5m, SupplierName: "Supplier X"),
@@ -78,6 +80,12 @@ public class RecordRestockCommandHandlerTests
             && m.UnitCost == 4.5m
             && m.UnitPrice == null
             && m.SupplierName == "Supplier X");
+
+        auditLog.Entries.Should().ContainSingle().Which.Should().Match<AuditLog>(a =>
+            a.EntityType == nameof(InventoryBatch)
+            && a.EntityId == result.Value.BatchId
+            && a.Action == "restock.recorded"
+            && a.ActorStoreId == StoreId);
     }
 
     [Fact]
@@ -101,7 +109,8 @@ public class RecordRestockCommandHandlerTests
     private static RecordRestockCommandHandler CreateHandler(
         FakeStockMovementRepository movementRepository,
         FakeInventoryBatchRepository batchRepository,
-        FakeProductRepository productRepository)
+        FakeProductRepository productRepository,
+        FakeAuditLogRepository? auditLogRepository = null)
     {
         return new RecordRestockCommandHandler(
             new FakeCurrentUser
@@ -113,6 +122,7 @@ public class RecordRestockCommandHandlerTests
             batchRepository,
             productRepository,
             movementRepository,
+            auditLogRepository ?? new FakeAuditLogRepository(),
             new FakeDailyMetricsMaterializer(),
             new FakeUnitOfWork(),
             NullLogger<RecordRestockCommandHandler>.Instance);

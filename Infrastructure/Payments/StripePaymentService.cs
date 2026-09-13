@@ -6,6 +6,7 @@ using Infrastructure.ExternalServices;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
+using Polly.Timeout;
 using Stripe;
 using Stripe.Checkout;
 
@@ -26,7 +27,14 @@ public sealed class StripePaymentService : IPaymentService
         _pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
             {
-                ShouldHandle = new PredicateBuilder().Handle<StripeException>(IsTransient),
+                ShouldHandle = args =>
+                {
+                    var outcome = args.Outcome;
+
+                    return ValueTask.FromResult(
+                        (outcome.Exception is StripeException stripe && IsTransient(stripe))
+                        || outcome.Exception is TimeoutRejectedException);
+                },
                 MaxRetryAttempts = 3,
                 BackoffType = DelayBackoffType.Exponential,
                 UseJitter = true,
@@ -39,6 +47,7 @@ public sealed class StripePaymentService : IPaymentService
                     return default;
                 },
             })
+            .AddTimeout(TimeSpan.FromSeconds(10))
             .Build();
     }
 

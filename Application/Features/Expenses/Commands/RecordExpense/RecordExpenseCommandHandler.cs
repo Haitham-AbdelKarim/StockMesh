@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Application.Abstractions.Persistence;
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
@@ -15,6 +16,7 @@ public sealed class RecordExpenseCommandHandler :
 {
     private readonly ICurrentUser _currentUser;
     private readonly IExpenseRepository _expenseRepository;
+    private readonly IAuditLogRepository _auditLogRepository;
     private readonly IDailyMetricsMaterializer _dailyMetricsMaterializer;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<RecordExpenseCommandHandler> _logger;
@@ -22,12 +24,14 @@ public sealed class RecordExpenseCommandHandler :
     public RecordExpenseCommandHandler(
         ICurrentUser currentUser,
         IExpenseRepository expenseRepository,
+        IAuditLogRepository auditLogRepository,
         IDailyMetricsMaterializer dailyMetricsMaterializer,
         IUnitOfWork unitOfWork,
         ILogger<RecordExpenseCommandHandler> logger)
     {
         _currentUser = currentUser;
         _expenseRepository = expenseRepository;
+        _auditLogRepository = auditLogRepository;
         _dailyMetricsMaterializer = dailyMetricsMaterializer;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -51,6 +55,17 @@ public sealed class RecordExpenseCommandHandler :
         try
         {
             await _expenseRepository.SaveChangesAsync(cancellationToken);
+
+            await _auditLogRepository.AddAsync(new AuditLog(
+                nameof(Expense),
+                expense.Id,
+                "expense.recorded",
+                _currentUser.StoreId,
+                JsonSerializer.Serialize(new
+                {
+                    command.Category,
+                    command.Amount
+                })), cancellationToken);
 
             await _dailyMetricsMaterializer.RecomputeDayAsync(
                 [_currentUser.StoreId],
