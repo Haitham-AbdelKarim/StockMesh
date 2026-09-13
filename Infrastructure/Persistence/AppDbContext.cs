@@ -40,6 +40,10 @@ public class AppDbContext : IdentityDbContext<StoreUser, IdentityRole<Guid>, Gui
 
     public DbSet<ProcessedStripeEvent> ProcessedStripeEvents => Set<ProcessedStripeEvent>();
 
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+
+    public DbSet<AgentToolCallLog> AgentToolCallLogs => Set<AgentToolCallLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

@@ -31,5 +31,9 @@ public class TestApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Stripe:CancelUrl", "http://localhost:4200/reservations?payment=cancelled");
         builder.UseSetting("Stripe:ConnectRefreshUrl", "http://localhost:4200/settings?connect=refresh");
         builder.UseSetting("Stripe:ConnectReturnUrl", "http://localhost:4200/settings?connect=done");
+        builder.UseSetting("Assistant:BaseUrl", "http://localhost:8001");
+        builder.UseSetting("Assistant:TimeoutSeconds", "120");
+        builder.UseSetting("Assistant:MaxQuestionsPerMinute", "10");
+        builder.UseSetting("AgentLog:InternalKey", "test-internal-key");
     }
 }

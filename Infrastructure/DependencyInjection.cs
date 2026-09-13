@@ -7,6 +7,7 @@ using Application.Features.MarketSignals.Services;
 using Application.Features.Metrics.Services;
 using Application.Features.Recommendations.Services;
 using Application.Features.Reservations.Services;
+using Infrastructure.Assistant;
 using Infrastructure.BackgroundJobs;
 using Infrastructure.ExternalServices;
 using Infrastructure.Identity;
@@ -87,10 +88,33 @@ public static class DependencyInjection
         stripeSettings.Validate();
         services.AddSingleton(stripeSettings);
         services.AddScoped<IPaymentService, StripePaymentService>();
-        services.AddScoped<IStripeWebhookVerifier, StripeWebhookVerifier>(); services.AddScoped<IDailyMarketSignalRepository, DailyMarketSignalRepository>();
+        services.AddScoped<IStripeWebhookVerifier, StripeWebhookVerifier>();
+
+        var assistantSettings = configuration.GetSection(AssistantSettings.SectionName).Get<AssistantSettings>()
+            ?? throw new InvalidOperationException(
+                "Missing 'Assistant' configuration section. Provide the agent-service address (see docker-compose.yml).");
+        assistantSettings.Validate();
+        services.AddSingleton(assistantSettings);
+        services.AddHttpClient<IAssistantClient, AssistantServiceClient>(client =>
+        {
+            client.BaseAddress = new Uri(assistantSettings.BaseUrl, UriKind.Absolute);
+            client.Timeout = TimeSpan.FromSeconds(assistantSettings.TimeoutSeconds);
+        })
+        .AddStandardResilienceHandler();
+
+        var agentLogSettings = configuration.GetSection(AgentLogSettings.SectionName).Get<AgentLogSettings>()
+            ?? throw new InvalidOperationException(
+                "Missing 'AgentLog' configuration section. Provide the agent-service callback secret.");
+        agentLogSettings.Validate();
+        services.AddSingleton(agentLogSettings); services.AddScoped<IDailyMarketSignalRepository, DailyMarketSignalRepository>();
         services.AddScoped<IRecommendationRepository, RecommendationRepository>();
         services.AddScoped<IReservationPaymentRepository, ReservationPaymentRepository>();
         services.AddScoped<IProcessedStripeEventRepository, ProcessedStripeEventRepository>();
+        services.AddScoped<IConversationRepository, ConversationRepository>();
+        services.AddScoped<IAgentToolCallLogRepository, AgentToolCallLogRepository>();
+
+        services.AddMemoryCache();
+        services.AddSingleton<IAssistantRateLimiter, AssistantRateLimiter>();
         services.AddScoped<ReservationExpiryProcessor>();
         services.AddScoped<MarketSignalAggregator>();
         services.AddScoped<RecommendationGenerator>();

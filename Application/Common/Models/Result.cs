@@ -9,7 +9,9 @@ public enum FailureKind
     Forbidden,
     NotFound,
     Validation,
-    Conflict
+    Conflict,
+    RateLimited,
+    BadGateway
 }
 
 public interface IResult
@@ -80,6 +82,16 @@ public class Result : IResult
     {
         return new Result(false, error, FailureKind.Conflict, null);
     }
+
+    public static Result RateLimited(string error)
+    {
+        return new Result(false, error, FailureKind.RateLimited, null);
+    }
+
+    public static Result BadGateway(string error)
+    {
+        return new Result(false, error, FailureKind.BadGateway, null);
+    }
 }
 
 public class Result<T> : Result
@@ -138,6 +150,16 @@ public class Result<T> : Result
     public static new Result<T> Conflict(string error)
     {
         return new Result<T>(default, false, error, FailureKind.Conflict, null);
+    }
+
+    public static new Result<T> RateLimited(string error)
+    {
+        return new Result<T>(default, false, error, FailureKind.RateLimited, null);
+    }
+
+    public static new Result<T> BadGateway(string error)
+    {
+        return new Result<T>(default, false, error, FailureKind.BadGateway, null);
     }
 }
 
